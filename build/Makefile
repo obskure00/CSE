@@ -250,6 +250,30 @@ src/CPU.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/CPU.cpp.s
 .PHONY : src/CPU.cpp.s
 
+src/ConsoleDevice.obj: src/ConsoleDevice.cpp.obj
+.PHONY : src/ConsoleDevice.obj
+
+# target to build an object file
+src/ConsoleDevice.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj
+.PHONY : src/ConsoleDevice.cpp.obj
+
+src/ConsoleDevice.i: src/ConsoleDevice.cpp.i
+.PHONY : src/ConsoleDevice.i
+
+# target to preprocess a source file
+src/ConsoleDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/ConsoleDevice.cpp.i
+.PHONY : src/ConsoleDevice.cpp.i
+
+src/ConsoleDevice.s: src/ConsoleDevice.cpp.s
+.PHONY : src/ConsoleDevice.s
+
+# target to generate assembly for a file
+src/ConsoleDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/ConsoleDevice.cpp.s
+.PHONY : src/ConsoleDevice.cpp.s
+
 src/Instructions.obj: src/Instructions.cpp.obj
 .PHONY : src/Instructions.obj
 
@@ -322,6 +346,78 @@ src/Memory.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/Memory.cpp.s
 .PHONY : src/Memory.cpp.s
 
+src/RamDevice.obj: src/RamDevice.cpp.obj
+.PHONY : src/RamDevice.obj
+
+# target to build an object file
+src/RamDevice.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RamDevice.cpp.obj
+.PHONY : src/RamDevice.cpp.obj
+
+src/RamDevice.i: src/RamDevice.cpp.i
+.PHONY : src/RamDevice.i
+
+# target to preprocess a source file
+src/RamDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RamDevice.cpp.i
+.PHONY : src/RamDevice.cpp.i
+
+src/RamDevice.s: src/RamDevice.cpp.s
+.PHONY : src/RamDevice.s
+
+# target to generate assembly for a file
+src/RamDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RamDevice.cpp.s
+.PHONY : src/RamDevice.cpp.s
+
+src/RomDevice.obj: src/RomDevice.cpp.obj
+.PHONY : src/RomDevice.obj
+
+# target to build an object file
+src/RomDevice.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RomDevice.cpp.obj
+.PHONY : src/RomDevice.cpp.obj
+
+src/RomDevice.i: src/RomDevice.cpp.i
+.PHONY : src/RomDevice.i
+
+# target to preprocess a source file
+src/RomDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RomDevice.cpp.i
+.PHONY : src/RomDevice.cpp.i
+
+src/RomDevice.s: src/RomDevice.cpp.s
+.PHONY : src/RomDevice.s
+
+# target to generate assembly for a file
+src/RomDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/RomDevice.cpp.s
+.PHONY : src/RomDevice.cpp.s
+
+src/TimerDevice.obj: src/TimerDevice.cpp.obj
+.PHONY : src/TimerDevice.obj
+
+# target to build an object file
+src/TimerDevice.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/TimerDevice.cpp.obj
+.PHONY : src/TimerDevice.cpp.obj
+
+src/TimerDevice.i: src/TimerDevice.cpp.i
+.PHONY : src/TimerDevice.i
+
+# target to preprocess a source file
+src/TimerDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/TimerDevice.cpp.i
+.PHONY : src/TimerDevice.cpp.i
+
+src/TimerDevice.s: src/TimerDevice.cpp.s
+.PHONY : src/TimerDevice.s
+
+# target to generate assembly for a file
+src/TimerDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/TimerDevice.cpp.s
+.PHONY : src/TimerDevice.cpp.s
+
 src/main.obj: src/main.cpp.obj
 .PHONY : src/main.obj
 
@@ -369,6 +465,9 @@ help:
 	@echo ... src/CPU.obj
 	@echo ... src/CPU.i
 	@echo ... src/CPU.s
+	@echo ... src/ConsoleDevice.obj
+	@echo ... src/ConsoleDevice.i
+	@echo ... src/ConsoleDevice.s
 	@echo ... src/Instructions.obj
 	@echo ... src/Instructions.i
 	@echo ... src/Instructions.s
@@ -378,6 +477,15 @@ help:
 	@echo ... src/Memory.obj
 	@echo ... src/Memory.i
 	@echo ... src/Memory.s
+	@echo ... src/RamDevice.obj
+	@echo ... src/RamDevice.i
+	@echo ... src/RamDevice.s
+	@echo ... src/RomDevice.obj
+	@echo ... src/RomDevice.i
+	@echo ... src/RomDevice.s
+	@echo ... src/TimerDevice.obj
+	@echo ... src/TimerDevice.i
+	@echo ... src/TimerDevice.s
 	@echo ... src/main.obj
 	@echo ... src/main.i
 	@echo ... src/main.s

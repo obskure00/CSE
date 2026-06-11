@@ -45,6 +45,11 @@ enum class Opcode : uint8_t {
     OUT  = 0x60,
     OUTN = 0x61,
 
+    // Interrupts
+    EI   = 0x70,
+    DI   = 0x71,
+    IRET = 0x72,
+
     HLT  = 0xFF,
 };
 

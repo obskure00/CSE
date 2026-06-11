@@ -6,6 +6,26 @@
 #include <iostream>
 #include <iomanip>
 
+void CPU::checkInterrupts() {
+    if (interruptsEnabled && bus.timer.irqPending()) {
+        bus.timer.clearIrq();
+
+        uint16_t handler = 0xF100;
+
+        stackPush16(state.PC);
+        interruptsEnabled = false;
+        state.PC = handler;
+    }
+}
+
+void CPU::reset() {
+    state.PC = 0xF000;
+    state.SP = 0xFFFF;
+    halted   = false;
+    interruptsEnabled = true;
+    pendingIRQs = 0;
+}
+
 Bus& CPU::getBus() {
     return bus;
 }
@@ -61,8 +81,11 @@ void CPU::setLogicFlags(uint8_t result) {
 
 bool CPU::step() {
     if (halted) return false;
-    uint8_t opByte = fetchByte();
 
+    // poll interrupts
+    checkInterrupts();
+
+    uint8_t opByte = fetchByte();
     return execute(*this, static_cast<Opcode>(opByte));
 }
 
@@ -70,6 +93,7 @@ void CPU::run(uint64_t maxCycles) {
     uint64_t cycles = 0;
     while (!halted) {
         if (!step()) break;
+        bus.tick();
         if (maxCycles > 0 && ++cycles >= maxCycles) break;
     }
 }

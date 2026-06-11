@@ -109,9 +109,19 @@ CMakeFiles/emulator.dir/src/main.cpp.obj: \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_bvector.h \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/vector.tcc \
  C:\Users\manue\Documents\CSE\src\Bus.hpp \
+ C:\Users\manue\Documents\CSE\src\RamDevice.hpp \
  C:\Users\manue\Documents\CSE\src\Memory.hpp \
  C:/msys64/ucrt64/include/c++/15.2.0/array \
  C:/msys64/ucrt64/include/c++/15.2.0/compare \
+ C:\Users\manue\Documents\CSE\src\RomDevice.hpp \
+ C:\Users\manue\Documents\CSE\src\ConsoleDevice.hpp \
+ C:/msys64/ucrt64/include/c++/15.2.0/queue \
+ C:/msys64/ucrt64/include/c++/15.2.0/deque \
+ C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_deque.h \
+ C:/msys64/ucrt64/include/c++/15.2.0/bits/deque.tcc \
+ C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_heap.h \
+ C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_queue.h \
+ C:\Users\manue\Documents\CSE\src\TimerDevice.hpp \
  C:/Users/manue/Documents/CSE/src/Assembler.hpp \
  C:/msys64/ucrt64/include/c++/15.2.0/fstream \
  C:/msys64/ucrt64/include/c++/15.2.0/istream \

@@ -161,6 +161,66 @@ CMakeFiles/core.dir/src/Bus.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/core.dir/src/Bus.cpp.s"
 	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\manue\Documents\CSE\src\Bus.cpp -o CMakeFiles\core.dir\src\Bus.cpp.s
 
+CMakeFiles/core.dir/src/RamDevice.cpp.obj: CMakeFiles/core.dir/flags.make
+CMakeFiles/core.dir/src/RamDevice.cpp.obj: CMakeFiles/core.dir/includes_CXX.rsp
+CMakeFiles/core.dir/src/RamDevice.cpp.obj: C:/Users/manue/Documents/CSE/src/RamDevice.cpp
+CMakeFiles/core.dir/src/RamDevice.cpp.obj: CMakeFiles/core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/core.dir/src/RamDevice.cpp.obj"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/core.dir/src/RamDevice.cpp.obj -MF CMakeFiles\core.dir\src\RamDevice.cpp.obj.d -o CMakeFiles\core.dir\src\RamDevice.cpp.obj -c C:\Users\manue\Documents\CSE\src\RamDevice.cpp
+
+CMakeFiles/core.dir/src/RamDevice.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/core.dir/src/RamDevice.cpp.i"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\manue\Documents\CSE\src\RamDevice.cpp > CMakeFiles\core.dir\src\RamDevice.cpp.i
+
+CMakeFiles/core.dir/src/RamDevice.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/core.dir/src/RamDevice.cpp.s"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\manue\Documents\CSE\src\RamDevice.cpp -o CMakeFiles\core.dir\src\RamDevice.cpp.s
+
+CMakeFiles/core.dir/src/RomDevice.cpp.obj: CMakeFiles/core.dir/flags.make
+CMakeFiles/core.dir/src/RomDevice.cpp.obj: CMakeFiles/core.dir/includes_CXX.rsp
+CMakeFiles/core.dir/src/RomDevice.cpp.obj: C:/Users/manue/Documents/CSE/src/RomDevice.cpp
+CMakeFiles/core.dir/src/RomDevice.cpp.obj: CMakeFiles/core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/core.dir/src/RomDevice.cpp.obj"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/core.dir/src/RomDevice.cpp.obj -MF CMakeFiles\core.dir\src\RomDevice.cpp.obj.d -o CMakeFiles\core.dir\src\RomDevice.cpp.obj -c C:\Users\manue\Documents\CSE\src\RomDevice.cpp
+
+CMakeFiles/core.dir/src/RomDevice.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/core.dir/src/RomDevice.cpp.i"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\manue\Documents\CSE\src\RomDevice.cpp > CMakeFiles\core.dir\src\RomDevice.cpp.i
+
+CMakeFiles/core.dir/src/RomDevice.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/core.dir/src/RomDevice.cpp.s"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\manue\Documents\CSE\src\RomDevice.cpp -o CMakeFiles\core.dir\src\RomDevice.cpp.s
+
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj: CMakeFiles/core.dir/flags.make
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj: CMakeFiles/core.dir/includes_CXX.rsp
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj: C:/Users/manue/Documents/CSE/src/ConsoleDevice.cpp
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj: CMakeFiles/core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj -MF CMakeFiles\core.dir\src\ConsoleDevice.cpp.obj.d -o CMakeFiles\core.dir\src\ConsoleDevice.cpp.obj -c C:\Users\manue\Documents\CSE\src\ConsoleDevice.cpp
+
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/core.dir/src/ConsoleDevice.cpp.i"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\manue\Documents\CSE\src\ConsoleDevice.cpp > CMakeFiles\core.dir\src\ConsoleDevice.cpp.i
+
+CMakeFiles/core.dir/src/ConsoleDevice.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/core.dir/src/ConsoleDevice.cpp.s"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\manue\Documents\CSE\src\ConsoleDevice.cpp -o CMakeFiles\core.dir\src\ConsoleDevice.cpp.s
+
+CMakeFiles/core.dir/src/TimerDevice.cpp.obj: CMakeFiles/core.dir/flags.make
+CMakeFiles/core.dir/src/TimerDevice.cpp.obj: CMakeFiles/core.dir/includes_CXX.rsp
+CMakeFiles/core.dir/src/TimerDevice.cpp.obj: C:/Users/manue/Documents/CSE/src/TimerDevice.cpp
+CMakeFiles/core.dir/src/TimerDevice.cpp.obj: CMakeFiles/core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/core.dir/src/TimerDevice.cpp.obj"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/core.dir/src/TimerDevice.cpp.obj -MF CMakeFiles\core.dir\src\TimerDevice.cpp.obj.d -o CMakeFiles\core.dir\src\TimerDevice.cpp.obj -c C:\Users\manue\Documents\CSE\src\TimerDevice.cpp
+
+CMakeFiles/core.dir/src/TimerDevice.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/core.dir/src/TimerDevice.cpp.i"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Users\manue\Documents\CSE\src\TimerDevice.cpp > CMakeFiles\core.dir\src\TimerDevice.cpp.i
+
+CMakeFiles/core.dir/src/TimerDevice.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/core.dir/src/TimerDevice.cpp.s"
+	C:\msys64\ucrt64\bin\c++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Users\manue\Documents\CSE\src\TimerDevice.cpp -o CMakeFiles\core.dir\src\TimerDevice.cpp.s
+
 # Object files for target core
 core_OBJECTS = \
 "CMakeFiles/core.dir/src/Memory.cpp.obj" \
@@ -168,7 +228,11 @@ core_OBJECTS = \
 "CMakeFiles/core.dir/src/Instructions.cpp.obj" \
 "CMakeFiles/core.dir/src/Loader.cpp.obj" \
 "CMakeFiles/core.dir/src/Assembler.cpp.obj" \
-"CMakeFiles/core.dir/src/Bus.cpp.obj"
+"CMakeFiles/core.dir/src/Bus.cpp.obj" \
+"CMakeFiles/core.dir/src/RamDevice.cpp.obj" \
+"CMakeFiles/core.dir/src/RomDevice.cpp.obj" \
+"CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj" \
+"CMakeFiles/core.dir/src/TimerDevice.cpp.obj"
 
 # External object files for target core
 core_EXTERNAL_OBJECTS =
@@ -179,9 +243,13 @@ libcore.a: CMakeFiles/core.dir/src/Instructions.cpp.obj
 libcore.a: CMakeFiles/core.dir/src/Loader.cpp.obj
 libcore.a: CMakeFiles/core.dir/src/Assembler.cpp.obj
 libcore.a: CMakeFiles/core.dir/src/Bus.cpp.obj
+libcore.a: CMakeFiles/core.dir/src/RamDevice.cpp.obj
+libcore.a: CMakeFiles/core.dir/src/RomDevice.cpp.obj
+libcore.a: CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj
+libcore.a: CMakeFiles/core.dir/src/TimerDevice.cpp.obj
 libcore.a: CMakeFiles/core.dir/build.make
 libcore.a: CMakeFiles/core.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX static library libcore.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Users\manue\Documents\CSE\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX static library libcore.a"
 	$(CMAKE_COMMAND) -P CMakeFiles\core.dir\cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\core.dir\link.txt --verbose=$(VERBOSE)
 

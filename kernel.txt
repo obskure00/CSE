@@ -1,0 +1,98 @@
+; ============================================
+; KERNEL for custom 8-bit ISA
+; Origin: 0x0200
+; Magic "BK" checked by bootrom
+; ============================================
+.ORG 0x0200
+
+; --- Magic for boot ROM ---
+kernel_magic:
+        .DB 66, 75   ; 'B', 'K'
+
+; --- Kernel entry point ---
+kernel_start:
+        CALL k_print_banner
+        CALL k_shell_loop
+        HLT
+
+; ============================================
+; Strings (null-terminated)
+; ============================================
+banner_str:
+        .DB 91, 75, 69, 82, 78, 69, 76, 93, 32, 0   ; [KERNEL]
+
+prompt_str:
+        .DB 62, 32, 0   ; "> "
+
+help_str:
+        .DB 67,111,109,109,97,110,100,115,58,32,72,69,76,80,32,77,69,77,32,84,73,67,75,10,0
+
+mem_str:
+        .DB 77,69,77,32,68,85,77,80,32,40,115,116,117,98,41,10,0
+
+tick_str:
+        .DB 84,73,67,75,32,40,115,116,117,98,41,10,0
+
+unknown_str:
+        .DB 85,78,75,78,79,87,78,32,67,79,77,77,65,78,68,10,0
+
+; ============================================
+; Utility routines
+; ============================================
+print_char:
+        OUT R0
+        RET
+
+newline:
+        LDI R0, 10
+        OUT R0
+        RET
+
+print_str:
+ps_loop:
+        LDR R0, R1
+        LDI R3, 0
+        CMP R0, R3
+        JZ ps_done
+        OUT R0
+        LDI R3, 1
+        ADD R2, R3
+        JC ps_inc_hi
+        JMP ps_loop
+ps_inc_hi:
+        ADD R1, R3
+        JMP ps_loop
+ps_done:
+        RET
+
+k_print_banner:
+        LDI R1, 0x02
+        LDI R2, 0x0A
+        CALL print_str
+        CALL newline
+        RET
+
+k_shell_loop:
+        CALL cmd_help
+        CALL cmd_mem
+        CALL cmd_tick
+shell_idle:
+        JMP shell_idle
+
+cmd_help:
+        LDI R1, 0x02
+        LDI R2, 0x1C
+        CALL print_str
+        RET
+
+cmd_mem:
+        LDI R1, 0x02
+        LDI R2, 0x35
+        CALL print_str
+        RET
+
+cmd_tick:
+        LDI R1, 0x02
+        LDI R2, 0x46
+        CALL print_str
+        RET

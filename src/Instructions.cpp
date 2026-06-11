@@ -193,6 +193,22 @@ bool execute(CPU& cpu, Opcode op) {
             break;
         }
 
+        case Opcode::EI: {
+            cpu.interruptsEnabled = true;
+            break;
+        }
+
+        case Opcode::DI: {
+            cpu.interruptsEnabled = false;
+            break;
+        }
+
+        case Opcode::IRET: {
+            state.PC = cpu.stackPop16();
+            cpu.interruptsEnabled = true;
+            break;
+        }
+
         case Opcode::HLT: {
         default:
             cpu.halted = true;

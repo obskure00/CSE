@@ -16,6 +16,14 @@ class CPU {
         CPUState state;
         bool halted = false;
 
+        bool     interruptsEnabled = true;
+        uint8_t  pendingIRQs = 0;    // bit 0 = timer
+
+        void requestInterrupt(uint8_t line) { pendingIRQs |= (1u << line); }
+        void checkInterrupts();
+
+        void reset();
+
         Bus& getBus();
 
         bool step();
