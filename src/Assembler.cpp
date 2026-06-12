@@ -28,6 +28,7 @@ std::string upper(std::string s) {
 }
 
 std::string stripComment(const std::string& s) {
+    // Handle semicolon not inside a char literal
     bool inChar = false;
     for (size_t i = 0; i < s.size(); ++i) {
         if (s[i] == '\'' && !inChar) inChar = true;
@@ -71,9 +72,11 @@ int parseRegister(const std::string& tok) {
     throw std::runtime_error("invalid register: " + tok);
 }
 
+// Forward declaration
 uint16_t parseValue(const std::string& tok,
                     const std::unordered_map<std::string, uint16_t>& labels);
 
+// Parse HI(expr) or LO(expr)
 uint16_t parseHiLo(const std::string& tok,
                    const std::unordered_map<std::string, uint16_t>& labels) {
     std::string t = trim(tok);
@@ -86,7 +89,7 @@ uint16_t parseHiLo(const std::string& tok,
     };
 
     if (tryExtract("HI")) {
-        std::string inner = t.substr(3, t.size() - 4);
+        std::string inner = t.substr(3, t.size() - 4); // strip HI( and )
         uint16_t v = parseValue(inner, labels);
         return static_cast<uint16_t>((v >> 8) & 0xFF);
     }
@@ -95,7 +98,7 @@ uint16_t parseHiLo(const std::string& tok,
         uint16_t v = parseValue(inner, labels);
         return static_cast<uint16_t>(v & 0xFF);
     }
-    return 0xFFFF;
+    return 0xFFFF; // sentinel: not a hi/lo expression
 }
 
 uint16_t parseValue(const std::string& tok,
@@ -103,6 +106,7 @@ uint16_t parseValue(const std::string& tok,
     std::string t = trim(tok);
     if (t.empty()) throw std::runtime_error("empty value");
 
+    // HI() / LO() pseudo-ops
     std::string u = upper(t);
     if (u.substr(0, 2) == "HI" || u.substr(0, 2) == "LO") {
         uint16_t result = parseHiLo(t, labels);
@@ -110,9 +114,11 @@ uint16_t parseValue(const std::string& tok,
             return result;
     }
 
+    // Label lookup (case-insensitive)
     auto it = labels.find(upper(t));
     if (it != labels.end()) return it->second;
 
+    // Char literal
     if (t.size() >= 3 && t.front() == '\'' && t.back() == '\'') {
         if (t.size() == 3) return static_cast<uint8_t>(t[1]);
         if (t.size() == 4 && t[1] == '\\') {
@@ -128,9 +134,11 @@ uint16_t parseValue(const std::string& tok,
         throw std::runtime_error("invalid char literal: " + t);
     }
 
+    // Hex
     if (t.size() > 2 && t[0] == '0' && (t[1] == 'x' || t[1] == 'X'))
         return static_cast<uint16_t>(std::stoul(t, nullptr, 16));
 
+    // Binary
     if (t.size() > 2 && t[0] == '0' && (t[1] == 'b' || t[1] == 'B')) {
         uint16_t v = 0;
         for (size_t i = 2; i < t.size(); ++i) {
@@ -141,6 +149,7 @@ uint16_t parseValue(const std::string& tok,
         return v;
     }
 
+    // Decimal
     return static_cast<uint16_t>(std::stoul(t, nullptr, 10));
 }
 
@@ -181,6 +190,8 @@ const std::unordered_map<std::string, OpInfo> ops = {
     {"EI",   {0x70, Kind::None}},
     {"DI",   {0x71, Kind::None}},
     {"IRET", {0x72, Kind::None}},
+    {"PUSHF", {0x73, Kind::None}},
+    {"POPF",  {0x74, Kind::None}},
     {"HLT",  {0xFF, Kind::None}},
 };
 
@@ -257,16 +268,19 @@ Result assembleFile(const std::string& path) {
 
     std::unordered_map<std::string, uint16_t> labels;
     uint16_t pc     = 0;
-    uint16_t origin = 0;
+    uint16_t origin = 0;      // address of the first emitted byte
     bool     originSet = false;
 
+    // Pass 1: collect label addresses, track origin
     for (const auto& raw : lines) {
         std::string text = trim(stripComment(raw));
         if (text.empty()) continue;
 
+        // Strip labels
         while (true) {
             auto pos = text.find(':');
             if (pos == std::string::npos) break;
+            // Make sure it's not inside a string literal
             bool inStr = false;
             bool isLabel = true;
             for (size_t i = 0; i < pos; ++i) {
@@ -302,14 +316,26 @@ Result assembleFile(const std::string& path) {
             auto ops2 = splitOperands(rest);
             if (!originSet) { origin = pc; originSet = true; }
             pc = static_cast<uint16_t>(pc + ops2.size());
+        } else if (mnem == ".RESB") {
+            std::string v;
+            iss >> v;
+            uint16_t n = parseValue(v, labels);
+            if (!originSet) { origin = pc; originSet = true; }
+            pc = static_cast<uint16_t>(pc + n);
         } else {
             if (!originSet) { origin = pc; originSet = true; }
             pc = static_cast<uint16_t>(pc + instrSize(mnem));
         }
     }
 
+    // Pass 2: emit bytes (output buffer index 0 = virtual address 'origin')
     std::vector<uint8_t> out;
-    pc = origin;
+    pc = origin;  // start emitting from origin, no padding
+
+    // Re-scan to find first .ORG and then emit from there
+    // We need to handle .ORG correctly: if file has .ORG X followed by .ORG Y,
+    // we need to handle gaps. For now: pad gaps between ORG regions.
+    // Reset and do a proper pass:
     out.clear();
     pc = 0;
     bool emitting = false;
@@ -346,10 +372,12 @@ Result assembleFile(const std::string& path) {
             if (operands.size() != 1) throw std::runtime_error(".ORG needs 1 operand");
             uint16_t newPc = parseValue(operands[0], labels);
             if (!emitting) {
+                // First .ORG sets the base; output buffer starts here, no padding
                 origin   = newPc;
                 pc       = newPc;
                 emitting = true;
             } else {
+                // Subsequent .ORG: pad if moving forward, error if backward
                 if (newPc < pc)
                     throw std::runtime_error(".ORG cannot move backwards");
                 while (pc < newPc) { out.push_back(0x00); ++pc; }
@@ -362,6 +390,12 @@ Result assembleFile(const std::string& path) {
                 out.push_back(static_cast<uint8_t>(v));
                 ++pc;
             }
+        } else if (mnem == ".RESB") {
+            if (!emitting) { emitting = true; }
+            if (operands.size() != 1) throw std::runtime_error(".RESB needs 1 operand");
+            uint16_t n = parseValue(operands[0], labels);
+            for (uint16_t i = 0; i < n; ++i) out.push_back(0x00);
+            pc = static_cast<uint16_t>(pc + n);
         } else {
             if (!emitting) { emitting = true; }
             emit(mnem, operands, labels, out);

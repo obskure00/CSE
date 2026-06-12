@@ -24,6 +24,8 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::LDR: {
+            // encoding: byte = (rd << 4) | raddr
+            // address is R[raddr]:R[raddr+1]  (big-endian 16-bit pointer)
             cpu.fetchRegPair(rd, rs);
             uint16_t addr = static_cast<uint16_t>(
                 (static_cast<uint16_t>(state.R[rs]) << 8) |
@@ -33,7 +35,8 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::STR: {
-            cpu.fetchRegPair(rs, rd);
+            // encoding: byte = (rsrc << 4) | raddr
+            cpu.fetchRegPair(rs, rd);   // rs = value reg, rd = address base reg
             uint16_t addr = static_cast<uint16_t>(
                 (static_cast<uint16_t>(state.R[rd]) << 8) |
                  static_cast<uint16_t>(state.R[(rd + 1u) & 0x07u]));
@@ -212,12 +215,33 @@ bool execute(CPU& cpu, Opcode op) {
             break;
         }
 
+        case Opcode::PUSHF: {
+            // Pack Z,C,V,S into the low 4 bits of a byte and push it.
+            uint8_t flags = 0;
+            if (state.SR.Z) flags |= 0x01;
+            if (state.SR.C) flags |= 0x02;
+            if (state.SR.V) flags |= 0x04;
+            if (state.SR.S) flags |= 0x08;
+            cpu.stackPush(flags);
+            break;
+        }
+
+        case Opcode::POPF: {
+            uint8_t flags = cpu.stackPop();
+            state.SR.Z = (flags & 0x01) != 0;
+            state.SR.C = (flags & 0x02) != 0;
+            state.SR.V = (flags & 0x04) != 0;
+            state.SR.S = (flags & 0x08) != 0;
+            break;
+        }
+
         case Opcode::HLT: {
             cpu.halted = true;
             return false;
         }
 
         default: {
+            // Unknown opcode: treat as HLT to avoid runaway execution
             cpu.halted = true;
             return false;
         }

@@ -154,4 +154,6 @@ CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj: \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/basic_ios.tcc \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/ostream.tcc \
  C:/msys64/ucrt64/include/c++/15.2.0/istream \
- C:/msys64/ucrt64/include/c++/15.2.0/bits/istream.tcc
+ C:/msys64/ucrt64/include/c++/15.2.0/bits/istream.tcc \
+ C:/msys64/ucrt64/include/conio.h \
+ C:/msys64/ucrt64/include/sec_api/conio_s.h

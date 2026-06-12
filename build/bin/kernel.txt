@@ -11,8 +11,9 @@ kernel_magic:
 
 ; --- Kernel entry point ---
 kernel_start:
+        CALL k_init_timer
         CALL k_print_banner
-        CALL k_shell_loop
+        CALL k_shell_loop       ; never returns
         HLT
 
 ; ============================================
@@ -28,17 +29,51 @@ help_str:
         .DB 67,111,109,109,97,110,100,115,58,32,72,69,76,80,32,77,69,77,32,84,73,67,75,10,0
         ;   "Commands: HELP MEM TICK\n"
 
-mem_str:
-        .DB 77,69,77,32,68,85,77,80,32,40,115,116,117,98,41,10,0
-        ;   "MEM DUMP (stub)\n"
-
-tick_str:
-        .DB 84,73,67,75,32,40,115,116,117,98,41,10,0
-        ;   "TICK (stub)\n"
+ticks_msg:
+        .DB 84,73,67,75,83,58,32,0
+        ;   "TICKS: "
 
 unknown_str:
         .DB 85,78,75,78,79,87,78,32,67,79,77,77,65,78,68,10,0
         ;   "UNKNOWN COMMAND\n"
+
+; --- Command name strings, for comparison against input_buf ---
+cmd_help_str:
+        .DB 'h','e','l','p',0
+
+cmd_mem_str:
+        .DB 'm','e','m',0
+
+cmd_tick_str:
+        .DB 't','i','c','k',0
+
+; --- Variables ---
+input_buf:
+        .RESB 32                ; line input buffer
+
+dump_idx:
+        .RESB 1                 ; mem dump: bytes printed so far in this dump (0-127)
+
+last_dump_addr:
+        .RESB 2                 ; mem dump: next address to dump (hi, lo); "mem" with
+                                 ; no argument continues from here
+
+tick_count:
+        .RESB 2                 ; incremented by the timer IRQ handler (hi, lo)
+
+idle_flag:
+        .RESB 1                 ; 1 while the shell is waiting for the first
+                                 ; keystroke of a new command line; the timer
+                                 ; IRQ animates a spinner only while this is set
+
+spinner_tick:
+        .RESB 1                 ; throttle counter for the spinner animation
+
+spinner_idx:
+        .RESB 1                 ; current spinner glyph index (0-3)
+
+spinner_chars:
+        .DB '-', 92, '|', '/'   ; '-', '\', '|', '/'
 
 ; ============================================
 ; Utility routines
@@ -75,6 +110,344 @@ ps_done:
         RET
 
 ; ============================================
+; Console input routines
+; ============================================
+
+; read_char: blocks until a key is available, returns it in R0.
+; If the idle spinner was animating (idle_flag set), erases it with a
+; single backspace and clears idle_flag so it doesn't keep animating
+; over text the user is typing.
+; Clobbers R0, R1, R2, R4, R5.
+read_char:
+rc_wait:
+        LDI R1, 0x80
+        LDI R2, 0x01
+        LDR R0, R1              ; R0 = console status (0x8001)
+        LDI R4, 0x02
+        AND R0, R4              ; R0 = status & INPUT_READY
+        LDI R5, 0
+        CMP R0, R5
+        JZ  rc_wait             ; no input yet, keep polling
+
+        ; input is ready -- if the idle spinner is showing, erase it
+        LDI R1, HI(idle_flag)
+        LDI R2, LO(idle_flag)
+        LDR R0, R1
+        LDI R5, 0
+        CMP R0, R5
+        JZ  rc_no_erase
+        LDI R0, 8               ; backspace: cursor lands on spinner glyph;
+        OUT R0                  ; the typed char (echoed next) overwrites it
+        LDI R0, 0
+        STR R0, R1              ; idle_flag = 0
+rc_no_erase:
+
+        LDI R1, 0x80
+        LDI R2, 0x00
+        LDR R0, R1              ; R0 = console data (0x8000)
+        RET
+
+; read_line: reads a line into input_buf, with echo and backspace
+; handling. Terminates on CR (13) or LF (10); null-terminates the
+; buffer and prints a newline. Clobbers R0-R5. Buffer pointer in R6:R7.
+read_line:
+        LDI R6, HI(input_buf)
+        LDI R7, LO(input_buf)
+rl_loop:
+        CALL read_char          ; R0 = next character
+
+        ; --- end of line? (CR or LF) ---
+        LDI R3, 13
+        CMP R0, R3
+        JZ  rl_done
+        LDI R3, 10
+        CMP R0, R3
+        JZ  rl_done
+
+        ; --- backspace? (BS=8 or DEL=127) ---
+        LDI R3, 8
+        CMP R0, R3
+        JZ  rl_backspace
+        LDI R3, 127
+        CMP R0, R3
+        JZ  rl_backspace
+
+        ; --- ordinary character: store + echo + advance pointer ---
+        STR R0, R6              ; mem[R6:R7] = R0
+        OUT R0
+        LDI R3, 1
+        ADD R7, R3
+        JC  rl_inc_hi
+        JMP rl_loop
+rl_inc_hi:
+        ADD R6, R3
+        JMP rl_loop
+
+rl_backspace:
+        ; if pointer is already at start of input_buf, ignore
+        LDI R3, HI(input_buf)
+        CMP R6, R3
+        JNZ rl_do_bs
+        LDI R3, LO(input_buf)
+        CMP R7, R3
+        JZ  rl_loop             ; at start: nothing to erase
+
+rl_do_bs:
+        ; pointer-- (with borrow into high byte)
+        LDI R3, 1
+        SUB R7, R3
+        JC  rl_dec_hi
+        JMP rl_echo_bs
+rl_dec_hi:
+        SUB R6, R3
+
+rl_echo_bs:
+        ; erase the character on the terminal: BS, space, BS
+        LDI R0, 8
+        OUT R0
+        LDI R0, 32
+        OUT R0
+        LDI R0, 8
+        OUT R0
+        JMP rl_loop
+
+rl_done:
+        LDI R0, 0
+        STR R0, R6              ; null-terminate
+        CALL newline
+        RET
+
+; ============================================
+; String comparison
+; ============================================
+
+; streq: compares null-terminated strings at R1:R2 and R3:R4.
+; Returns R0 = 1 if equal, R0 = 0 otherwise.
+; Clobbers R0-R6.
+streq:
+seq_loop:
+        LDR R0, R1              ; R0 = *p1
+        LDR R5, R3              ; R5 = *p2
+        CMP R0, R5
+        JNZ seq_no
+        LDI R6, 0
+        CMP R0, R6
+        JZ  seq_yes             ; both NUL: strings equal
+
+        ; advance p1 (R1:R2)
+        LDI R6, 1
+        ADD R2, R6
+        JC  seq_inc_p1_hi
+        JMP seq_skip_p1
+seq_inc_p1_hi:
+        ADD R1, R6
+seq_skip_p1:
+        ; advance p2 (R3:R4)
+        LDI R6, 1
+        ADD R4, R6
+        JC  seq_inc_p2_hi
+        JMP seq_loop
+seq_inc_p2_hi:
+        ADD R3, R6
+        JMP seq_loop
+
+seq_yes:
+        LDI R0, 1
+        RET
+seq_no:
+        LDI R0, 0
+        RET
+
+; strprefix: checks whether the string at R1:R2 starts with the
+; null-terminated prefix at R3:R4.
+; Returns R0 = 1 if it's a prefix match; on success R1:R2 is advanced
+; to point just past the matched prefix.
+; Returns R0 = 0 if not a prefix; R1:R2 is left unchanged.
+; Clobbers R0, R5, R6, R7 always; R1:R2 only on success.
+strprefix:
+        MOV R6, R1              ; save original R1:R2 in R6:R7
+        MOV R7, R2
+sp_loop:
+        LDR R5, R3              ; R5 = *prefix
+        LDI R0, 0
+        CMP R5, R0
+        JZ  sp_match            ; prefix exhausted -> match
+
+        LDR R0, R1              ; R0 = *str
+        CMP R0, R5
+        JNZ sp_nomatch
+
+        ; advance str pointer (R1:R2)
+        LDI R0, 1
+        ADD R2, R0
+        JC  sp_inc_p1
+        JMP sp_skip_p1
+sp_inc_p1:
+        ADD R1, R0
+sp_skip_p1:
+        ; advance prefix pointer (R3:R4)
+        LDI R0, 1
+        ADD R4, R0
+        JC  sp_inc_p2
+        JMP sp_loop
+sp_inc_p2:
+        ADD R3, R0
+        JMP sp_loop
+
+sp_match:
+        LDI R0, 1
+        RET
+sp_nomatch:
+        MOV R1, R6              ; restore original str pointer
+        MOV R2, R7
+        LDI R0, 0
+        RET
+
+; ============================================
+; Hex parsing / printing
+; ============================================
+
+; hexdigit: converts ASCII char in R0 to its value (0-15).
+; Accepts '0'-'9', 'A'-'F', 'a'-'f'. Returns 0xFF in R0 if invalid.
+; Clobbers R0, R5.
+hexdigit:
+        LDI R5, '0'
+        CMP R0, R5
+        JC  hd_check_upper         ; R0 < '0'
+        LDI R5, '9'
+        CMP R5, R0
+        JC  hd_check_upper         ; R0 > '9'
+        LDI R5, '0'
+        SUB R0, R5
+        RET
+hd_check_upper:
+        LDI R5, 'A'
+        CMP R0, R5
+        JC  hd_check_lower         ; R0 < 'A'
+        LDI R5, 'F'
+        CMP R5, R0
+        JC  hd_check_lower         ; R0 > 'F'
+        LDI R5, 'A'
+        SUB R0, R5
+        LDI R5, 10
+        ADD R0, R5
+        RET
+hd_check_lower:
+        LDI R5, 'a'
+        CMP R0, R5
+        JC  hd_invalid          ; R0 < 'a'
+        LDI R5, 'f'
+        CMP R5, R0
+        JC  hd_invalid          ; R0 > 'f'
+        LDI R5, 'a'
+        SUB R0, R5
+        LDI R5, 10
+        ADD R0, R5
+        RET
+hd_invalid:
+        LDI R0, 0xFF
+        RET
+
+; shl16: shifts the 16-bit value (R3:R4, hi:lo) left by 1 bit.
+; Clobbers R0, R3, R4.
+shl16:
+        SHL R4
+        JC  shl16_carry
+        SHL R3
+        RET
+shl16_carry:
+        SHL R3
+        LDI R0, 1
+        OR  R3, R0              ; carry from low byte -> bit0 of high byte
+        RET
+
+; parse_hex16: parses up to 4 hex digits starting at R1:R2, stopping
+; at the first non-hex character (or after 4 digits). Result in
+; R3:R4 (hi:lo). R1:R2 is advanced past the consumed digits.
+; Clobbers R0-R7.
+parse_hex16:
+        LDI R3, 0
+        LDI R4, 0
+        LDI R7, 0               ; digit counter
+ph_loop:
+        LDI R5, 4
+        CMP R7, R5
+        JZ  ph_done             ; max 4 digits
+
+        LDR R0, R1              ; R0 = current char
+        CALL hexdigit           ; R0 = 0-15, or 0xFF if invalid
+        LDI R5, 0xFF
+        CMP R0, R5
+        JZ  ph_done             ; not a hex digit -> stop
+
+        MOV R6, R0              ; save digit value
+
+        CALL shl16              ; (R3:R4) <<= 4  (4 single-bit shifts)
+        CALL shl16
+        CALL shl16
+        CALL shl16
+
+        OR  R4, R6              ; R4 |= digit value
+
+        ; advance R1:R2
+        LDI R5, 1
+        ADD R2, R5
+        JC  ph_inc_hi
+        JMP ph_next
+ph_inc_hi:
+        ADD R1, R5
+ph_next:
+        LDI R5, 1
+        ADD R7, R5
+        JMP ph_loop
+ph_done:
+        RET
+
+; print_nibble: prints the value in R5 (0-15) as a hex digit.
+; Clobbers R0, R5, R6.
+print_nibble:
+        LDI R6, 10
+        CMP R5, R6
+        JC  pn_digit            ; R5 < 10
+        LDI R6, 10
+        SUB R5, R6
+        LDI R0, 'A'
+        ADD R0, R5
+        OUT R0
+        RET
+pn_digit:
+        LDI R0, '0'
+        ADD R0, R5
+        OUT R0
+        RET
+
+; print_hex8: prints R0 (a byte) as two hex digits.
+; Clobbers R0, R5, R6, R7.
+print_hex8:
+        MOV R7, R0              ; save original byte
+        MOV R5, R0
+        SHR R5
+        SHR R5
+        SHR R5
+        SHR R5                  ; R5 = high nibble
+        CALL print_nibble
+
+        MOV R5, R7
+        LDI R6, 0x0F
+        AND R5, R6              ; R5 = low nibble
+        CALL print_nibble
+        RET
+
+; print_hex16: prints R3:R4 (hi:lo) as four hex digits.
+; Clobbers R0, R3, R4, R5, R6, R7. (R3, R4 are consumed; pass copies.)
+print_hex16:
+        MOV R0, R3
+        CALL print_hex8
+        MOV R0, R4
+        CALL print_hex8
+        RET
+
+; ============================================
 ; Kernel routines
 ; ============================================
 
@@ -85,12 +458,87 @@ k_print_banner:
         CALL newline
         RET
 
+; k_shell_loop: interactive read-eval loop. Never returns.
 k_shell_loop:
+ksl_loop:
+        LDI R1, HI(prompt_str)
+        LDI R2, LO(prompt_str)
+        CALL print_str
+
+        ; reserve a column for the idle spinner and mark ourselves idle;
+        ; the timer IRQ will animate here until the first keystroke arrives
+        LDI R0, ' '
+        OUT R0
+        LDI R1, HI(idle_flag)
+        LDI R2, LO(idle_flag)
+        LDI R0, 1
+        STR R0, R1
+
+        CALL read_line          ; -> input_buf
+
+        ; --- empty line: just reprint the prompt ---
+        LDI R1, HI(input_buf)
+        LDI R2, LO(input_buf)
+        LDR R0, R1
+        LDI R5, 0
+        CMP R0, R5
+        JZ  ksl_loop
+
+        ; --- "help" ? ---
+        LDI R1, HI(input_buf)
+        LDI R2, LO(input_buf)
+        LDI R3, HI(cmd_help_str)
+        LDI R4, LO(cmd_help_str)
+        CALL streq
+        LDI R5, 1
+        CMP R0, R5
+        JZ  ksl_do_help
+
+        ; --- "tick" ? ---
+        LDI R1, HI(input_buf)
+        LDI R2, LO(input_buf)
+        LDI R3, HI(cmd_tick_str)
+        LDI R4, LO(cmd_tick_str)
+        CALL streq
+        LDI R5, 1
+        CMP R0, R5
+        JZ  ksl_do_tick
+
+        ; --- "mem" [hexaddr] ? ---
+        LDI R1, HI(input_buf)
+        LDI R2, LO(input_buf)
+        LDI R3, HI(cmd_mem_str)
+        LDI R4, LO(cmd_mem_str)
+        CALL strprefix          ; on success, R1:R2 -> char after "mem"
+        LDI R5, 1
+        CMP R0, R5
+        JNZ ksl_unknown
+
+        ; require a word boundary after "mem" (NUL or space),
+        ; so "memory" etc. is NOT treated as the mem command
+        LDR R0, R1
+        LDI R5, 0
+        CMP R0, R5
+        JZ  ksl_do_mem
+        LDI R5, ' '
+        CMP R0, R5
+        JZ  ksl_do_mem
+
+ksl_unknown:
+        LDI R1, HI(unknown_str)
+        LDI R2, LO(unknown_str)
+        CALL print_str
+        JMP ksl_loop
+
+ksl_do_help:
         CALL cmd_help
-        CALL cmd_mem
+        JMP ksl_loop
+ksl_do_tick:
         CALL cmd_tick
-shell_idle:
-        JMP shell_idle
+        JMP ksl_loop
+ksl_do_mem:
+        CALL cmd_mem            ; R1:R2 = pointer to arg text (after "mem")
+        JMP ksl_loop
 
 cmd_help:
         LDI R1, HI(help_str)
@@ -98,14 +546,319 @@ cmd_help:
         CALL print_str
         RET
 
-cmd_mem:
-        LDI R1, HI(mem_str)
-        LDI R2, LO(mem_str)
+; cmd_tick: prints "TICKS: XXXX" where XXXX is the 16-bit tick_count
+; (incremented by the timer interrupt handler), then a newline.
+cmd_tick:
+        LDI R1, HI(ticks_msg)
+        LDI R2, LO(ticks_msg)
         CALL print_str
+
+        ; load tick_count (16-bit, hi byte at tick_count, lo byte at
+        ; tick_count+1) into R3:R4 for print_hex16
+        LDI R5, HI(tick_count)
+        LDI R6, LO(tick_count)
+        LDR R3, R5              ; R3 = hi byte
+        LDI R0, 1
+        ADD R6, R0
+        JC  ct_inc_hi
+        JMP ct_load_lo
+ct_inc_hi:
+        ADD R5, R0
+ct_load_lo:
+        LDR R4, R5              ; R4 = lo byte
+
+        CALL print_hex16
+        CALL newline
         RET
 
-cmd_tick:
-        LDI R1, HI(tick_str)
-        LDI R2, LO(tick_str)
-        CALL print_str
+; cmd_mem: dumps 128 bytes (8 rows of 16) in hex.
+; Entry: R1:R2 points at the text right after "mem" in input_buf
+;        (could be end-of-string, a space, or "<space><hexaddr>").
+; If a hex address is given, dumping starts there; otherwise it
+; continues from where the previous "mem" left off (last_dump_addr),
+; which starts at 0x0000.
+cmd_mem:
+        ; --- skip spaces ---
+cm_skip_sp:
+        LDR R0, R1
+        LDI R5, ' '
+        CMP R0, R5
+        JNZ cm_check_end
+        LDI R5, 1
+        ADD R2, R5
+        JC  cm_skip_inc
+        JMP cm_skip_sp
+cm_skip_inc:
+        ADD R1, R5
+        JMP cm_skip_sp
+
+cm_check_end:
+        LDI R5, 0
+        CMP R0, R5
+        JZ  cm_use_last
+
+        ; explicit hex address given
+        CALL parse_hex16        ; -> R3:R4
+        JMP cm_have_addr
+
+cm_use_last:
+        ; load last_dump_addr into R3:R4 (using R5:R6 as address pair)
+        LDI R5, HI(last_dump_addr)
+        LDI R6, LO(last_dump_addr)
+        LDR R3, R5
+        LDI R0, 1
+        ADD R6, R0
+        JC  cm_lda_inc
+        JMP cm_lda_lo
+cm_lda_inc:
+        ADD R5, R0
+cm_lda_lo:
+        LDR R4, R5
+
+cm_have_addr:
+        MOV R1, R3              ; R1:R2 = dump start address
+        MOV R2, R4
+
+        ; init dump_idx = 0
+        LDI R0, 0
+        LDI R3, HI(dump_idx)
+        LDI R4, LO(dump_idx)
+        STR R0, R3
+
+cm_loop:
+        LDI R3, HI(dump_idx)
+        LDI R4, LO(dump_idx)
+        LDR R0, R3              ; R0 = i
+        LDI R5, 128
+        CMP R0, R5
+        JZ  cm_done
+
+        ; row start? (i & 0x0F) == 0  -> print "ADDR: "
+        MOV R6, R0
+        LDI R5, 0x0F
+        AND R6, R5
+        LDI R5, 0
+        CMP R6, R5
+        JNZ cm_skip_addr
+        MOV R3, R1
+        MOV R4, R2
+        CALL print_hex16
+        LDI R0, ':'
+        OUT R0
+        LDI R0, ' '
+        OUT R0
+cm_skip_addr:
+
+        ; print byte at R1:R2
+        LDR R0, R1
+        CALL print_hex8
+        LDI R0, ' '
+        OUT R0
+
+        ; advance dump pointer R1:R2
+        LDI R5, 1
+        ADD R2, R5
+        JC  cm_ainc
+        JMP cm_adone
+cm_ainc:
+        ADD R1, R5
+cm_adone:
+
+        ; i++ ; if old (i & 0x0F) == 15 -> newline
+        LDI R3, HI(dump_idx)
+        LDI R4, LO(dump_idx)
+        LDR R0, R3
+        MOV R6, R0              ; save old i
+        LDI R5, 1
+        ADD R0, R5
+        STR R0, R3
+
+        LDI R5, 0x0F
+        AND R6, R5
+        LDI R5, 15
+        CMP R6, R5
+        JNZ cm_nonl
+        LDI R0, 10
+        OUT R0
+cm_nonl:
+        JMP cm_loop
+
+cm_done:
+        ; save R1:R2 as last_dump_addr (so next "mem" continues here)
+        LDI R5, HI(last_dump_addr)
+        LDI R6, LO(last_dump_addr)
+        STR R1, R5
+        LDI R0, 1
+        ADD R6, R0
+        JC  cm_save_inc
+        JMP cm_save_lo
+cm_save_inc:
+        ADD R5, R0
+cm_save_lo:
+        STR R2, R5
         RET
+
+; ============================================
+; Timer / interrupts
+; ============================================
+
+; k_init_timer: installs the timer IRQ handler in the IVT, configures
+; the timer for periodic interrupts, and enables interrupts.
+;
+; IVT is at RAM address 0x0000-0x0001 (hi, lo) -- see Bus::IVT_BASE.
+;
+; Timer MMIO registers (base 0x8010):
+;   +2/+3 (0x8012/0x8013) = compare lo/hi
+;   +4    (0x8014)        = control: bit0=enable, bit1=auto-reload
+k_init_timer:
+        ; --- install IRQ handler address at mem[0x0000:0x0001] ---
+        LDI R1, HI(irq_handler)
+        LDI R2, LO(irq_handler)
+        LDI R3, 0
+        LDI R4, 0
+        STR R1, R3              ; mem[0x0000] = HI(irq_handler)
+        LDI R5, 1
+        ADD R4, R5              ; R3:R4 = 0x0001 (R4=0+1, no carry possible)
+        STR R2, R3              ; mem[0x0001] = LO(irq_handler)
+
+        ; --- set timer compare = 0xFFFF (maximum period) ---
+        ; tick_count then grows much more slowly; the spinner's own
+        ; software throttle (SPINNER_PERIOD below) determines its rate.
+        LDI R1, 0x80
+        LDI R2, 0x12            ; 0x8012 = compare lo
+        LDI R0, 0xFF
+        STR R0, R1
+        LDI R1, 0x80
+        LDI R2, 0x13            ; 0x8013 = compare hi
+        LDI R0, 0xFF
+        STR R0, R1
+
+        ; --- enable timer with auto-reload (bit0|bit1 = 0x03) ---
+        LDI R1, 0x80
+        LDI R2, 0x14            ; 0x8014 = control
+        LDI R0, 0x03
+        STR R0, R1
+
+        EI                      ; make sure interrupts are enabled
+        RET
+
+; irq_handler: timer interrupt service routine. Increments the 16-bit
+; tick_count variable. Saves and restores every register and the
+; flags it touches, since an interrupt can occur between any two
+; instructions (including between a CMP and the conditional jump
+; that depends on it).
+irq_handler:
+        PUSHF
+        PUSH R0
+        PUSH R1
+        PUSH R2
+        PUSH R3
+        PUSH R4
+        PUSH R5
+        PUSH R6
+        PUSH R7
+
+        ; --- tick_count += 1 (16-bit, hi byte at tick_count, lo at +1) ---
+        LDI R1, HI(tick_count)
+        LDI R2, LO(tick_count)
+        LDR R3, R1              ; R3 = hi byte
+
+        LDI R0, 1
+        ADD R2, R0
+        JC  ih_inc_hi
+        JMP ih_load_lo
+ih_inc_hi:
+        ADD R1, R0
+ih_load_lo:
+        LDR R4, R1              ; R4 = lo byte  (R1:R2 = tick_count+1)
+
+        LDI R0, 1
+        ADD R4, R0              ; lo byte + 1
+        JC  ih_carry_hi
+        JMP ih_store_lo
+ih_carry_hi:
+        LDI R0, 1
+        ADD R3, R0              ; propagate carry into hi byte
+ih_store_lo:
+        STR R4, R1              ; mem[tick_count+1] = new lo byte
+
+        ; move pointer back to tick_count (hi byte) and store
+        LDI R0, 1
+        SUB R2, R0
+        JC  ih_dec_hi
+        JMP ih_store_hi
+ih_dec_hi:
+        SUB R1, R0
+ih_store_hi:
+        STR R3, R1              ; mem[tick_count] = new hi byte
+
+        ; --- background spinner: animates while idle at the prompt ---
+        LDI R1, HI(idle_flag)
+        LDI R2, LO(idle_flag)
+        LDR R0, R1
+        LDI R5, 0
+        CMP R0, R5
+        JZ  ih_no_spin          ; not idle right now -> nothing to do
+
+        ; throttle: only update the visible spinner every SPINNER_PERIOD
+        ; timer interrupts, so it animates at a human-visible rate
+        ; rather than every IRQ.
+        LDI R1, HI(spinner_tick)
+        LDI R2, LO(spinner_tick)
+        LDR R0, R1
+        LDI R5, 1
+        ADD R0, R5
+        LDI R5, 66              ; SPINNER_PERIOD
+        CMP R0, R5
+        JZ  ih_spin_update
+        STR R0, R1              ; not yet -- save incremented throttle counter
+        JMP ih_no_spin
+
+ih_spin_update:
+        LDI R0, 0
+        STR R0, R1              ; reset throttle counter
+
+        ; erase the previously-drawn spinner glyph (or the placeholder
+        ; space printed by k_shell_loop, the first time through)
+        LDI R0, 8
+        OUT R0
+
+        ; print spinner_chars[spinner_idx]
+        LDI R1, HI(spinner_idx)
+        LDI R2, LO(spinner_idx)
+        LDR R0, R1              ; R0 = spinner_idx (0-3)
+
+        LDI R3, HI(spinner_chars)
+        LDI R4, LO(spinner_chars)
+        ADD R4, R0              ; R3:R4 = address of spinner_chars[idx]
+        JC  ih_spin_addr_hi
+        JMP ih_spin_addr_done
+ih_spin_addr_hi:
+        LDI R0, 1
+        ADD R3, R0
+ih_spin_addr_done:
+        LDR R0, R3              ; R0 = spinner glyph
+        OUT R0
+
+        ; spinner_idx = (spinner_idx + 1) mod 4
+        LDR R0, R1              ; R1:R2 still = address of spinner_idx
+        LDI R5, 1
+        ADD R0, R5
+        LDI R5, 4
+        CMP R0, R5
+        JNZ ih_spin_store_idx
+        LDI R0, 0
+ih_spin_store_idx:
+        STR R0, R1
+
+ih_no_spin:
+        POP R7
+        POP R6
+        POP R5
+        POP R4
+        POP R3
+        POP R2
+        POP R1
+        POP R0
+        POPF
+        IRET
