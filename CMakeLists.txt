@@ -27,6 +27,7 @@ add_library(core STATIC
     src/RomDevice.cpp
     src/ConsoleDevice.cpp
     src/TimerDevice.cpp
+    src/DiskDevice.cpp
 )
 
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -58,3 +59,15 @@ add_custom_command(TARGET emulator POST_BUILD
         ${CMAKE_BINARY_DIR}/bin/bootrom.txt
     COMMENT "Copying kernel.txt and bootrom.txt to bin/"
 )
+
+# ── One-time disk image provisioning ─────────────────────────────────────────
+# disk.img is a *persistent, writable* filesystem (created/modified by the
+# "write"/"rm" shell commands). It is copied into bin/ only if it doesn't
+# already exist there, so re-running cmake/make never clobbers the user's
+# saved files. Delete bin/disk.img manually to reset to the pristine,
+# baked-in-programs image shipped in the source tree.
+set(DISK_IMAGE_DEST "${CMAKE_BINARY_DIR}/bin/disk.img")
+if(NOT EXISTS ${DISK_IMAGE_DEST})
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    file(COPY "${CMAKE_SOURCE_DIR}/disk.img" DESTINATION "${CMAKE_BINARY_DIR}/bin")
+endif()

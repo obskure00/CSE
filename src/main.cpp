@@ -18,7 +18,6 @@ static bool isTextAsm(const std::string& path) {
     return endsWith(path, ".txt") || endsWith(path, ".asm");
 }
 
-// Search for a file: first as given (relative to CWD), then next to the executable
 static std::string findFile(const std::string& name, const fs::path& exeDir) {
     if (fs::exists(name)) return name;
     fs::path candidate = exeDir / name;

@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-// Simple ROM device: fixed-size read-only memory.
 class RomDevice {
 public:
     explicit RomDevice(std::size_t size)

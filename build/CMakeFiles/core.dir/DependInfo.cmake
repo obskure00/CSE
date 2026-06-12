@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "C:/Users/manue/Documents/CSE/src/Bus.cpp" "CMakeFiles/core.dir/src/Bus.cpp.obj" "gcc" "CMakeFiles/core.dir/src/Bus.cpp.obj.d"
   "C:/Users/manue/Documents/CSE/src/CPU.cpp" "CMakeFiles/core.dir/src/CPU.cpp.obj" "gcc" "CMakeFiles/core.dir/src/CPU.cpp.obj.d"
   "C:/Users/manue/Documents/CSE/src/ConsoleDevice.cpp" "CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj" "gcc" "CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj.d"
+  "C:/Users/manue/Documents/CSE/src/DiskDevice.cpp" "CMakeFiles/core.dir/src/DiskDevice.cpp.obj" "gcc" "CMakeFiles/core.dir/src/DiskDevice.cpp.obj.d"
   "C:/Users/manue/Documents/CSE/src/Instructions.cpp" "CMakeFiles/core.dir/src/Instructions.cpp.obj" "gcc" "CMakeFiles/core.dir/src/Instructions.cpp.obj.d"
   "C:/Users/manue/Documents/CSE/src/Loader.cpp" "CMakeFiles/core.dir/src/Loader.cpp.obj" "gcc" "CMakeFiles/core.dir/src/Loader.cpp.obj.d"
   "C:/Users/manue/Documents/CSE/src/Memory.cpp" "CMakeFiles/core.dir/src/Memory.cpp.obj" "gcc" "CMakeFiles/core.dir/src/Memory.cpp.obj.d"

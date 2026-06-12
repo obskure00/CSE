@@ -1,0 +1,43 @@
+; ============================================
+; HELLO.BIN -- baked-in user program
+; Loaded at 0x6000 by "run hello.bin", executed via CALL, returns via RET.
+; Self-contained: cannot call kernel routines, so it prints directly.
+; ============================================
+.ORG 0x6000
+
+prog_start:
+        LDI R1, 'H'
+        OUT R1
+        LDI R1, 'e'
+        OUT R1
+        LDI R1, 'l'
+        OUT R1
+        LDI R1, 'l'
+        OUT R1
+        LDI R1, 'o'
+        OUT R1
+        LDI R1, ' '
+        OUT R1
+        LDI R1, 'f'
+        OUT R1
+        LDI R1, 'r'
+        OUT R1
+        LDI R1, 'o'
+        OUT R1
+        LDI R1, 'm'
+        OUT R1
+        LDI R1, ' '
+        OUT R1
+        LDI R1, 'd'
+        OUT R1
+        LDI R1, 'i'
+        OUT R1
+        LDI R1, 's'
+        OUT R1
+        LDI R1, 'k'
+        OUT R1
+        LDI R1, '!'
+        OUT R1
+        LDI R1, 10
+        OUT R1
+        RET

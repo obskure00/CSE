@@ -22,8 +22,6 @@ namespace {
         }
     }
 
-    // Make sure the terminal is restored even if the process is killed
-    // with Ctrl+C while in raw mode.
     void signalHandler(int sig) {
         restoreTerminal();
         std::_Exit(128 + sig);
@@ -45,7 +43,7 @@ ConsoleDevice::~ConsoleDevice() {
 
 #ifndef _WIN32
 void ConsoleDevice::enableRawMode() {
-    if (tcgetattr(STDIN_FILENO, &origTermios) != 0) return; // not a tty
+    if (tcgetattr(STDIN_FILENO, &origTermios) != 0) return;
 
     termios raw = origTermios;
     raw.c_lflag &= static_cast<unsigned int>(~(ECHO | ICANON | ISIG));
@@ -108,8 +106,8 @@ uint8_t ConsoleDevice::readData() {
 
 uint8_t ConsoleDevice::readStatus() {
     poll();
-    uint8_t status = 0x01;                  // bit 0: output always ready
-    if (!inputQueue.empty()) status |= 0x02; // bit 1: input available
+    uint8_t status = 0x01;
+    if (!inputQueue.empty()) status |= 0x02;
     return status;
 }
 
@@ -119,5 +117,5 @@ void ConsoleDevice::writeData(uint8_t v) {
 }
 
 void ConsoleDevice::writeControl(uint8_t) {
-    // reserved for future use (e.g. clear screen)
+    // reserved for future use
 }

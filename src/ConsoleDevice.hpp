@@ -13,14 +13,12 @@ public:
     explicit ConsoleDevice(Bus&);
     ~ConsoleDevice();
 
-    // MMIO read/write entry points
-    uint8_t readData();       // 0x8000
-    uint8_t readStatus();     // 0x8001
+    uint8_t readData();
+    uint8_t readStatus();
     void    writeData(uint8_t v);
     void    writeControl(uint8_t v);
 
 private:
-    // Non-blocking poll of stdin; pushes any available bytes into inputQueue.
     void poll();
 
     std::queue<uint8_t> inputQueue;

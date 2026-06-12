@@ -122,6 +122,7 @@ CMakeFiles/core.dir/src/Loader.cpp.obj: \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_heap.h \
  C:/msys64/ucrt64/include/c++/15.2.0/bits/stl_queue.h \
  C:\Users\manue\Documents\CSE\src\TimerDevice.hpp \
+ C:\Users\manue\Documents\CSE\src\DiskDevice.hpp \
  C:/msys64/ucrt64/include/c++/15.2.0/fstream \
  C:/msys64/ucrt64/include/c++/15.2.0/istream \
  C:/msys64/ucrt64/include/c++/15.2.0/ios \

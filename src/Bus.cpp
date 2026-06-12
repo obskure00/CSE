@@ -5,11 +5,13 @@ uint8_t Bus::read(uint16_t addr) {
     if (addr >= 0xF000) {
         return rom.read(static_cast<uint16_t>(addr - 0xF000));
     } else if (addr >= 0x8000 && addr <= 0x80FF) {
-        // MMIO window
         if (addr == 0x8000) return console.readData();
         if (addr == 0x8001) return console.readStatus();
         if (addr >= 0x8010 && addr <= 0x8014) {
             return timer.readReg(static_cast<uint8_t>(addr - 0x8010));
+        }
+        if (addr >= 0x8020 && addr <= 0x8026) {
+            return disk.readReg(static_cast<uint8_t>(addr - 0x8020));
         }
         return 0xFF;
     } else {
@@ -26,6 +28,9 @@ void Bus::write(uint16_t addr, uint8_t value) {
         if (addr == 0x8001) { console.writeControl(value); return; }
         if (addr >= 0x8010 && addr <= 0x8014) {
             timer.writeReg(static_cast<uint8_t>(addr - 0x8010), value);
+        }
+        if (addr >= 0x8020 && addr <= 0x8026) {
+            disk.writeReg(static_cast<uint8_t>(addr - 0x8020), value);
         }
         // other MMIO: ignore
     } else {

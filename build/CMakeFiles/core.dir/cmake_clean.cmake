@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/core.dir/src/CPU.cpp.obj.d"
   "CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj"
   "CMakeFiles/core.dir/src/ConsoleDevice.cpp.obj.d"
+  "CMakeFiles/core.dir/src/DiskDevice.cpp.obj"
+  "CMakeFiles/core.dir/src/DiskDevice.cpp.obj.d"
   "CMakeFiles/core.dir/src/Instructions.cpp.obj"
   "CMakeFiles/core.dir/src/Instructions.cpp.obj.d"
   "CMakeFiles/core.dir/src/Loader.cpp.obj"

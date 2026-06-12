@@ -274,6 +274,30 @@ src/ConsoleDevice.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/ConsoleDevice.cpp.s
 .PHONY : src/ConsoleDevice.cpp.s
 
+src/DiskDevice.obj: src/DiskDevice.cpp.obj
+.PHONY : src/DiskDevice.obj
+
+# target to build an object file
+src/DiskDevice.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/DiskDevice.cpp.obj
+.PHONY : src/DiskDevice.cpp.obj
+
+src/DiskDevice.i: src/DiskDevice.cpp.i
+.PHONY : src/DiskDevice.i
+
+# target to preprocess a source file
+src/DiskDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/DiskDevice.cpp.i
+.PHONY : src/DiskDevice.cpp.i
+
+src/DiskDevice.s: src/DiskDevice.cpp.s
+.PHONY : src/DiskDevice.s
+
+# target to generate assembly for a file
+src/DiskDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\core.dir\build.make CMakeFiles/core.dir/src/DiskDevice.cpp.s
+.PHONY : src/DiskDevice.cpp.s
+
 src/Instructions.obj: src/Instructions.cpp.obj
 .PHONY : src/Instructions.obj
 
@@ -468,6 +492,9 @@ help:
 	@echo ... src/ConsoleDevice.obj
 	@echo ... src/ConsoleDevice.i
 	@echo ... src/ConsoleDevice.s
+	@echo ... src/DiskDevice.obj
+	@echo ... src/DiskDevice.i
+	@echo ... src/DiskDevice.s
 	@echo ... src/Instructions.obj
 	@echo ... src/Instructions.i
 	@echo ... src/Instructions.s

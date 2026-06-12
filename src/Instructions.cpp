@@ -36,7 +36,7 @@ bool execute(CPU& cpu, Opcode op) {
 
         case Opcode::STR: {
             // encoding: byte = (rsrc << 4) | raddr
-            cpu.fetchRegPair(rs, rd);   // rs = value reg, rd = address base reg
+            cpu.fetchRegPair(rs, rd);
             uint16_t addr = static_cast<uint16_t>(
                 (static_cast<uint16_t>(state.R[rd]) << 8) |
                  static_cast<uint16_t>(state.R[(rd + 1u) & 0x07u]));
@@ -216,7 +216,6 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::PUSHF: {
-            // Pack Z,C,V,S into the low 4 bits of a byte and push it.
             uint8_t flags = 0;
             if (state.SR.Z) flags |= 0x01;
             if (state.SR.C) flags |= 0x02;
@@ -241,7 +240,6 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         default: {
-            // Unknown opcode: treat as HLT to avoid runaway execution
             cpu.halted = true;
             return false;
         }
