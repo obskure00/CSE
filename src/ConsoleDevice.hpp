@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <queue>
 
-class Bus; // if needed
+class Bus;
 
 class ConsoleDevice {
 public:

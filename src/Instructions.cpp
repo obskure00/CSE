@@ -9,9 +9,7 @@ bool execute(CPU& cpu, Opcode op) {
 
     switch (op) {
 
-        case Opcode::NOP: {
-            break;
-        }
+        case Opcode::NOP: break;
 
         case Opcode::MOV: {
             cpu.fetchRegPair(rd, rs);
@@ -20,30 +18,32 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::LDI: {
-            rd        = cpu.fetchByte() & 0x07;
-            state.R[rd]   = cpu.fetchByte();
+            rd          = cpu.fetchByte() & 0x07;
+            state.R[rd] = cpu.fetchByte();
             break;
         }
 
         case Opcode::LDR: {
             cpu.fetchRegPair(rd, rs);
-            uint16_t addr = (static_cast<uint16_t>(state.R[rs]) << 8)
-                        |  static_cast<uint16_t>(state.R[(rs + 1) & 0x07]);
+            uint16_t addr = static_cast<uint16_t>(
+                (static_cast<uint16_t>(state.R[rs]) << 8) |
+                 static_cast<uint16_t>(state.R[(rs + 1u) & 0x07u]));
             state.R[rd] = cpu.getBus().read(addr);
             break;
         }
 
         case Opcode::STR: {
             cpu.fetchRegPair(rs, rd);
-            uint16_t addr = (static_cast<uint16_t>(state.R[rd]) << 8)
-                        |  static_cast<uint16_t>(state.R[(rd + 1) & 0x07]);
+            uint16_t addr = static_cast<uint16_t>(
+                (static_cast<uint16_t>(state.R[rd]) << 8) |
+                 static_cast<uint16_t>(state.R[(rd + 1u) & 0x07u]));
             cpu.getBus().write(addr, state.R[rs]);
             break;
         }
 
         case Opcode::ADD: {
             cpu.fetchRegPair(rd, rs);
-            uint16_t result = state.R[rd] + state.R[rs];
+            uint16_t result = static_cast<uint16_t>(state.R[rd]) + static_cast<uint16_t>(state.R[rs]);
             cpu.setArithmeticFlags(result, state.R[rd], state.R[rs], false);
             state.R[rd] = static_cast<uint8_t>(result);
             break;
@@ -51,8 +51,7 @@ bool execute(CPU& cpu, Opcode op) {
 
         case Opcode::SUB: {
             cpu.fetchRegPair(rd, rs);
-            uint16_t result = static_cast<uint16_t>(state.R[rd])
-                            - static_cast<uint16_t>(state.R[rs]);
+            uint16_t result = static_cast<uint16_t>(state.R[rd]) - static_cast<uint16_t>(state.R[rs]);
             cpu.setArithmeticFlags(result, state.R[rd], state.R[rs], true);
             state.R[rd] = static_cast<uint8_t>(result);
             break;
@@ -80,34 +79,33 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::NOT: {
-            rd      = cpu.fetchByte() & 0x07;
-            state.R[rd] = ~state.R[rd];
+            rd          = cpu.fetchByte() & 0x07;
+            state.R[rd] = static_cast<uint8_t>(~state.R[rd]);
             cpu.setLogicFlags(state.R[rd]);
             break;
         }
 
         case Opcode::SHL: {
-            rd           = cpu.fetchByte() & 0x07;
-            bool carry   = (state.R[rd] & 0x80) != 0;
-            state.R[rd]    <<= 1;
+            rd = cpu.fetchByte() & 0x07;
+            bool carry  = (state.R[rd] & 0x80) != 0;
+            state.R[rd] = static_cast<uint8_t>(state.R[rd] << 1);
             cpu.setLogicFlags(state.R[rd]);
-            state.SR.C       = carry;
+            state.SR.C  = carry;
             break;
         }
 
         case Opcode::SHR: {
-            rd           = cpu.fetchByte() & 0x07;
-            bool carry   = (state.R[rd] & 0x01) != 0;
-            state.R[rd]    >>= 1;
+            rd = cpu.fetchByte() & 0x07;
+            bool carry  = (state.R[rd] & 0x01) != 0;
+            state.R[rd] = static_cast<uint8_t>(state.R[rd] >> 1);
             cpu.setLogicFlags(state.R[rd]);
-            state.SR.C       = carry;
+            state.SR.C  = carry;
             break;
         }
 
         case Opcode::CMP: {
             cpu.fetchRegPair(rd, rs);
-            uint16_t result = static_cast<uint16_t>(state.R[rd])
-                            - static_cast<uint16_t>(state.R[rs]);
+            uint16_t result = static_cast<uint16_t>(state.R[rd]) - static_cast<uint16_t>(state.R[rs]);
             cpu.setArithmeticFlags(result, state.R[rd], state.R[rs], true);
             break;
         }
@@ -115,42 +113,47 @@ bool execute(CPU& cpu, Opcode op) {
         case Opcode::JMP: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
         case Opcode::JZ: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            if (state.SR.Z) state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            if (state.SR.Z)
+                state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
         case Opcode::JNZ: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            if (!state.SR.Z) state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            if (!state.SR.Z)
+                state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
         case Opcode::JC: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            if (state.SR.C) state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            if (state.SR.C)
+                state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
         case Opcode::JN: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            if (state.SR.S) state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            if (state.SR.S)
+                state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
         case Opcode::JV: {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
-            if (state.SR.V) state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            if (state.SR.V)
+                state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
@@ -158,7 +161,7 @@ bool execute(CPU& cpu, Opcode op) {
             uint8_t hi = cpu.fetchByte();
             uint8_t lo = cpu.fetchByte();
             cpu.stackPush16(state.PC);
-            state.PC = (static_cast<uint16_t>(hi) << 8) | lo;
+            state.PC = static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
             break;
         }
 
@@ -210,7 +213,11 @@ bool execute(CPU& cpu, Opcode op) {
         }
 
         case Opcode::HLT: {
-        default:
+            cpu.halted = true;
+            return false;
+        }
+
+        default: {
             cpu.halted = true;
             return false;
         }

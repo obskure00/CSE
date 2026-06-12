@@ -11,15 +11,15 @@ class CPU {
         Bus& bus;
 
     public:
-        CPU(Bus& bus) : bus(bus) {}
+        explicit CPU(Bus& b) : bus(b) {}
 
         CPUState state;
         bool halted = false;
 
-        bool     interruptsEnabled = true;
-        uint8_t  pendingIRQs = 0;    // bit 0 = timer
+        bool    interruptsEnabled = true;
+        uint8_t pendingIRQs       = 0;
 
-        void requestInterrupt(uint8_t line) { pendingIRQs |= (1u << line); }
+        void requestInterrupt(uint8_t line) { pendingIRQs |= static_cast<uint8_t>(1u << line); }
         void checkInterrupts();
 
         void reset();
@@ -27,10 +27,10 @@ class CPU {
         Bus& getBus();
 
         bool step();
-        void run(uint64_t MaxCycles = 0);
+        void run(uint64_t maxCycles = 0);
 
-        uint8_t fetchByte();
-        void    fetchRegPair(uint8_t& rd, uint8_t& rs);
+        uint8_t  fetchByte();
+        void     fetchRegPair(uint8_t& rd, uint8_t& rs);
 
         void     stackPush(uint8_t value);
         uint8_t  stackPop();

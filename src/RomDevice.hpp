@@ -15,7 +15,6 @@ public:
 
     void write(uint16_t addr, uint8_t value);
 
-    // helper for loaders: allows direct initialization
     std::vector<uint8_t>&       raw();
     const std::vector<uint8_t>& raw() const;
 

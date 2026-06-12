@@ -2,28 +2,31 @@
 #include "Instructions.hpp"
 #include "Bus.hpp"
 #include <iostream>
-
-#include <iostream>
 #include <iomanip>
 
 void CPU::checkInterrupts() {
-    if (interruptsEnabled && bus.timer.irqPending()) {
-        bus.timer.clearIrq();
+    if (!interruptsEnabled) return;
+    if (!bus.timer.irqPending()) return;
 
-        uint16_t handler = 0xF100;
+    bus.timer.clearIrq();
 
-        stackPush16(state.PC);
-        interruptsEnabled = false;
-        state.PC = handler;
-    }
+    uint16_t hi      = bus.read(Bus::IVT_BASE);
+    uint16_t lo      = bus.read(static_cast<uint16_t>(Bus::IVT_BASE + 1));
+    uint16_t handler = static_cast<uint16_t>((hi << 8) | lo);
+
+    if (handler == 0x0000 || handler == 0xFFFF) return;
+
+    stackPush16(state.PC);
+    interruptsEnabled = false;
+    state.PC = handler;
 }
 
 void CPU::reset() {
     state.PC = 0xF000;
-    state.SP = 0xFFFF;
-    halted   = false;
+    state.SP = 0xEFFF;
+    halted            = false;
     interruptsEnabled = true;
-    pendingIRQs = 0;
+    pendingIRQs       = 0;
 }
 
 Bus& CPU::getBus() {
@@ -58,14 +61,14 @@ void CPU::stackPush16(uint16_t value) {
 uint16_t CPU::stackPop16() {
     uint8_t lo = stackPop();
     uint8_t hi = stackPop();
-    return (static_cast<uint16_t>(hi) << 8) | lo;
+    return static_cast<uint16_t>((static_cast<uint16_t>(hi) << 8) | lo);
 }
 
 void CPU::setArithmeticFlags(uint16_t result, uint8_t a, uint8_t b, bool subtract) {
-    uint8_t r8   = static_cast<uint8_t>(result);
-    state.SR.Z   = (r8 == 0);
-    state.SR.S   = (r8 & 0x80) != 0;
-    state.SR.C   = (result > 0xFF);
+    uint8_t r8 = static_cast<uint8_t>(result);
+    state.SR.Z = (r8 == 0);
+    state.SR.S = (r8 & 0x80) != 0;
+    state.SR.C = (result > 0xFF);
     if (subtract)
         state.SR.V = ((a ^ b) & 0x80) != 0 && ((a ^ r8) & 0x80) != 0;
     else
@@ -82,7 +85,6 @@ void CPU::setLogicFlags(uint8_t result) {
 bool CPU::step() {
     if (halted) return false;
 
-    // poll interrupts
     checkInterrupts();
 
     uint8_t opByte = fetchByte();

@@ -15,8 +15,6 @@ add_compile_options(
 )
 
 # ── Shared core library ───────────────────────────────────────────────────────
-# Includes the assembler logic so both the emulator and standalone assembler
-# can share the same two-pass implementation via Assembler::assemble().
 
 add_library(core STATIC
     src/Memory.cpp
@@ -34,13 +32,11 @@ add_library(core STATIC
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # ── Emulator executable ───────────────────────────────────────────────────────
-# Accepts either a .asm file (assembled in-memory) or a .bin file.
 
 add_executable(emulator src/main.cpp)
 target_link_libraries(emulator PRIVATE core)
 
 # ── Standalone assembler executable ──────────────────────────────────────────
-# Translates a .asm file to a .bin file on disk.
 
 add_executable(assembler src/AssemblerMain.cpp)
 target_link_libraries(assembler PRIVATE core)
@@ -49,4 +45,16 @@ target_link_libraries(assembler PRIVATE core)
 
 set_target_properties(emulator assembler PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+# ── Copy runtime data files next to the emulator binary ──────────────────────
+
+add_custom_command(TARGET emulator POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/kernel.txt
+        ${CMAKE_BINARY_DIR}/bin/kernel.txt
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/bootrom.txt
+        ${CMAKE_BINARY_DIR}/bin/bootrom.txt
+    COMMENT "Copying kernel.txt and bootrom.txt to bin/"
 )

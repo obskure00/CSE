@@ -1,3 +1,6 @@
+#ifndef REGISTERS_HPP
+#define REGISTERS_HPP
+
 #include <cstdint>
 
 struct Flags {
@@ -15,3 +18,5 @@ struct CPUState {
 
     Flags SR{};
 };
+
+#endif

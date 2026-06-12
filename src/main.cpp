@@ -1,51 +1,66 @@
 #include "Loader.hpp"
 #include "CPU.hpp"
 #include "Bus.hpp"
-#include <Assembler.hpp>
+#include "Assembler.hpp"
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 static bool endsWith(const std::string& s, const std::string& suffix) {
     return s.size() >= suffix.size() &&
            s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
+static bool isTextAsm(const std::string& path) {
+    return endsWith(path, ".txt") || endsWith(path, ".asm");
+}
+
+// Search for a file: first as given (relative to CWD), then next to the executable
+static std::string findFile(const std::string& name, const fs::path& exeDir) {
+    if (fs::exists(name)) return name;
+    fs::path candidate = exeDir / name;
+    if (fs::exists(candidate)) return candidate.string();
+    throw std::runtime_error("could not find file: " + name +
+        "\n  searched: " + name +
+        "\n  searched: " + candidate.string());
+}
+
 int main(int argc, char* argv[]) {
-    // Optional argument: kernel source/binary path
-    // If none given, default to "kernel.txt"
-    std::string kernelPath = "kernel.txt";
-    if (argc >= 2) {
-        kernelPath = argv[1];
-    }
+    fs::path exeDir = fs::path(argv[0]).parent_path();
+
+    std::string kernelPath  = "kernel.txt";
+    std::string bootromPath = "bootrom.txt";
+
+    if (argc >= 2) kernelPath  = argv[1];
+    if (argc >= 3) bootromPath = argv[2];
 
     try {
+        kernelPath  = findFile(kernelPath,  exeDir);
+        bootromPath = findFile(bootromPath, exeDir);
+
         Bus bus;
         CPU cpu(bus);
 
-        // -------------------------------------------------
-        // 1. Load kernel into RAM at 0x0200
-        //    Kernel must start with 'B','K' magic at 0x0200
-        // -------------------------------------------------
-        if (endsWith(kernelPath, ".txt") || endsWith(kernelPath, ".asm")) {
-            auto bytes = Assembler::assemble(kernelPath);
-            Loader::loadBytesToBus(bus, bytes, 0x0200);
+        // Load boot ROM into 0xF000-0xFFFF
+        if (isTextAsm(bootromPath)) {
+            auto result = Assembler::assembleFile(bootromPath);
+            Loader::loadBytesToBus(bus, result.bytes, result.origin);
+        } else {
+            Loader::loadToBus(bus, bootromPath, 0xF000);
+        }
+
+        if (isTextAsm(kernelPath)) {
+            auto result = Assembler::assembleFile(kernelPath);
+            Loader::loadBytesToBus(bus, result.bytes, result.origin);
         } else {
             Loader::loadToBus(bus, kernelPath, 0x0200);
         }
 
-        // -------------------------------------------------
-        // 2. Load boot ROM into ROM at 0xF000
-        //    bootrom.bin should match your bootrom.txt
-        // -------------------------------------------------
-        Loader::loadToBus(bus, "bootrom.bin", 0xF000);
-
-        // -------------------------------------------------
-        // 3. Reset CPU: PC -> 0xF000, SP init, etc.
-        //    Then run: BootROM -> Kernel -> Shell
-        // -------------------------------------------------
         cpu.reset();
-        cpu.run();   // you can pass a maxCycles if you want
+        cpu.run();
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
