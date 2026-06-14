@@ -1624,15 +1624,15 @@ crun_found:
         RET
 
 crun_sizecheck:
-        ; only files of size <= 256 can be run (1 block)
+        ; files up to MAX_FILE_BLOCKS (3 blocks = 768 bytes) can be run
         LDI R3, HI(fs_size_hi)
         LDI R4, LO(fs_size_hi)
         LDR R0, R3
-        LDI R5, 1
+        LDI R5, 3
         CMP R0, R5
-        JC  crun_load           ; size_hi < 1 -> size < 256, ok
-        JNZ crun_toolarge       ; size_hi > 1 -> too large
-        ; size_hi == 1: ok only if size_lo == 0 (size == 256)
+        JC  crun_load           ; size_hi < 3 -> size <= 767, ok
+        JNZ crun_toolarge       ; size_hi > 3 -> too large
+        ; size_hi == 3: ok only if size_lo == 0 (size == 768)
         LDI R3, HI(fs_size_lo)
         LDI R4, LO(fs_size_lo)
         LDR R0, R3
@@ -1646,35 +1646,109 @@ crun_toolarge:
         RET
 
 crun_load:
-        ; load the file's start block into the disk buffer
+        ; --- block 0 -> 0x6000 ---
         LDI R6, HI(fs_start_hi)
         LDI R7, LO(fs_start_hi)
         LDR R3, R6
         LDI R6, HI(fs_start_lo)
         LDI R7, LO(fs_start_lo)
         LDR R4, R6
+        LDI R1, 0x60
+        CALL crun_load_and_copy
+
+        ; --- if size > 256, load block 1 -> 0x6100 ---
+        LDI R3, HI(fs_size_hi)
+        LDI R4, LO(fs_size_hi)
+        LDR R0, R3
+        LDI R5, 1
+        CMP R0, R5
+        JC  crun_exec           ; size_hi < 1 -> size < 256, done
+        JNZ crun_b1             ; size_hi > 1 -> size > 256, need block 1
+        LDI R3, HI(fs_size_lo)
+        LDI R4, LO(fs_size_lo)
+        LDR R0, R3
+        LDI R5, 0
+        CMP R0, R5
+        JZ  crun_exec           ; size_hi==1, size_lo==0 -> size==256, done
+crun_b1:
+        LDI R6, HI(fs_start_hi)
+        LDI R7, LO(fs_start_hi)
+        LDR R3, R6
+        LDI R6, HI(fs_start_lo)
+        LDI R7, LO(fs_start_lo)
+        LDR R4, R6
+        LDI R0, 1
+        ADD R4, R0
+        JC  crun_b1_inc_hi
+        JMP crun_b1_set
+crun_b1_inc_hi:
+        ADD R3, R0
+crun_b1_set:
+        LDI R1, 0x61
+        CALL crun_load_and_copy
+
+        ; --- if size > 512, load block 2 -> 0x6200 ---
+        LDI R3, HI(fs_size_hi)
+        LDI R4, LO(fs_size_hi)
+        LDR R0, R3
+        LDI R5, 2
+        CMP R0, R5
+        JC  crun_exec           ; size_hi < 2 -> size <= 511, done
+        JNZ crun_b2             ; size_hi > 2 (== 3) -> size > 512, need block 2
+        LDI R3, HI(fs_size_lo)
+        LDI R4, LO(fs_size_lo)
+        LDR R0, R3
+        LDI R5, 0
+        CMP R0, R5
+        JZ  crun_exec           ; size_hi==2, size_lo==0 -> size==512, done
+crun_b2:
+        LDI R6, HI(fs_start_hi)
+        LDI R7, LO(fs_start_hi)
+        LDR R3, R6
+        LDI R6, HI(fs_start_lo)
+        LDI R7, LO(fs_start_lo)
+        LDR R4, R6
+        LDI R0, 2
+        ADD R4, R0
+        JC  crun_b2_inc_hi
+        JMP crun_b2_set
+crun_b2_inc_hi:
+        ADD R3, R0
+crun_b2_set:
+        LDI R1, 0x62
+        CALL crun_load_and_copy
+
+crun_exec:
+        ; jump to the loaded program; it RETs back here
+        CALL 0x6000
+        RET
+
+; ============================================
+; crun_load_and_copy: loads disk block R3:R4 and copies its 256 bytes
+; to RAM at (R1):0x00. Clobbers R0,R3,R4,R5,R6,R7.
+; ============================================
+crun_load_and_copy:
         CALL disk_set_block
         CALL disk_load
         LDI R0, 0
         CALL disk_seek
 
-        ; copy 256 bytes from disk buffer to RAM at 0x6000
-        LDI R3, 0x60
-        LDI R4, 0x00
+        MOV R3, R1
+        LDI R4, 0
         LDI R6, HI(fs_pb_count)
         LDI R7, LO(fs_pb_count)
         LDI R0, 0
         STR R0, R6              ; counter = 0 (means 256)
-crun_copy:
+clac_loop:
         CALL disk_read_byte     ; R0 = byte
         STR R0, R3              ; mem[R3:R4] = byte
         LDI R5, 1
         ADD R4, R5
-        JC  crun_copy_inc_hi
-        JMP crun_copy_dec
-crun_copy_inc_hi:
+        JC  clac_inc_hi
+        JMP clac_dec
+clac_inc_hi:
         ADD R3, R5
-crun_copy_dec:
+clac_dec:
         LDI R6, HI(fs_pb_count)
         LDI R7, LO(fs_pb_count)
         LDR R0, R6
@@ -1683,10 +1757,7 @@ crun_copy_dec:
         STR R0, R6
         LDI R5, 0
         CMP R0, R5
-        JNZ crun_copy
-
-        ; jump to the loaded program; it RETs back here
-        CALL 0x6000
+        JNZ clac_loop
         RET
 
 usage_run_str:
@@ -1718,13 +1789,13 @@ fs_wc_byte:  .RESB 1
 ; Clobbers R0,R3,R4,R5,R6,R7.
 ; ============================================
 fs_write_char:
-        ; full? (fs_total_hi >= 2)
+        ; full? (fs_total_hi >= 3)  -- MAX_FILE_BLOCKS = 3 (768 bytes)
         LDI R3, HI(fs_total_hi)
         LDI R4, LO(fs_total_hi)
         LDR R0, R3
-        LDI R5, 2
+        LDI R5, 3
         CMP R0, R5
-        JC  fwc_check_boundary  ; hi < 2 -> not full
+        JC  fwc_check_boundary  ; hi < 3 -> not full
         LDI R0, 1
         LDI R3, HI(fs_full)
         LDI R4, LO(fs_full)
@@ -2172,13 +2243,13 @@ cwn_done:
         ADD R0, R6
         CALL disk_write_byte
 
-        ; next_free_block = fs_sb + 2 (offset 6,7)
+        ; next_free_block = fs_sb + 3  (MAX_FILE_BLOCKS = 3)
         LDI R0, 6
         CALL disk_seek
         LDI R6, HI(fs_sb_lo)
         LDI R7, LO(fs_sb_lo)
         LDR R0, R6
-        LDI R5, 2
+        LDI R5, 3
         ADD R0, R5
         JC  nfb_carry
         MOV R4, R0

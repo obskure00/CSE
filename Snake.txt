@@ -1,0 +1,385 @@
+; ============================================
+; SNAKE.BIN -- baked-in user program
+; Loaded at 0x6000 by "run snake.bin", executed via CALL, returns via RET.
+; Self-contained: cannot call kernel routines.
+;
+; Classic snake on an 8x8 grid. The snake moves one cell per keypress.
+; The tail only grows when food ('*') is eaten -- no permanent trail.
+; The game ends when the snake hits a wall or its own body. The final
+; score (number of food eaten) is printed, then control returns to the
+; shell.
+;
+; SIMPLIFICATION: collision is checked against the body BEFORE the
+; tail cell is vacated, so you can't move into the cell your tail is
+; about to leave on the same turn.
+;
+; Controls: w=up  s=down  a=left  d=right  (any other key: keep going)
+;
+; Scratch RAM layout (plain zero-initialised RAM -- NOT part of the
+; loaded program, so it doesn't count against file size):
+;   0x6300-0x633F  8x8 grid (0=empty, 1=snake body, 2=food)
+;   0x6340         length (current snake length, starts at 1)
+;   0x6341         head_x
+;   0x6342         head_y
+;   0x6343         direction (0=up, 1=right, 2=down, 3=left)
+;   0x6344         rng state
+;   0x6345         score (food eaten this game)
+;   0x6346         eating_flag (scratch spill inside step_snake)
+;   0x6360-0x6373  body[20]: grid indices, body[0]=head, body[len-1]=tail
+; ============================================
+.ORG 0x6000
+
+snake_start:
+        ; seed RNG from timer free-running counter (MMIO 0x8010)
+        LDI R6, 0x80
+        LDI R7, 0x10
+        LDR R0, R6
+        LDI R3, 0x63
+        LDI R4, 0x44
+        STR R0, R3              ; rng = timer byte
+
+        ; clear grid[0..63] = 0
+        LDI R4, 0x00
+        LDI R5, 0
+sk_clr:
+        LDI R0, 0
+        STR R0, R3
+        LDI R6, 1
+        ADD R4, R6
+        ADD R5, R6
+        LDI R6, 64
+        CMP R5, R6
+        JC  sk_clr
+
+        ; length=1; head=(4,4); dir=1 (right); score=0
+        LDI R0, 1
+        LDI R4, 0x40
+        STR R0, R3              ; length = 1
+        LDI R0, 4
+        LDI R4, 0x41
+        STR R0, R3              ; head_x = 4
+        LDI R4, 0x42
+        STR R0, R3              ; head_y = 4
+        LDI R0, 1
+        LDI R4, 0x43
+        STR R0, R3              ; dir = 1 (right)
+        LDI R0, 0
+        LDI R4, 0x45
+        STR R0, R3              ; score = 0
+
+        ; grid[36]=1 (head at (4,4)); body[0]=36
+        LDI R0, 1
+        LDI R4, 36
+        STR R0, R3
+        LDI R0, 36
+        LDI R4, 0x60
+        STR R0, R3              ; body[0] = 36
+
+        CALL place_food
+
+game_loop:
+        CALL draw_grid
+        CALL read_dir
+        CALL step_snake
+        JMP game_loop
+
+; ============================================
+; read_char_raw: blocking read of one console byte into R0.
+; ============================================
+read_char_raw:
+        LDI R6, 0x80
+        LDI R7, 0x01
+rcr_wait:
+        LDR R0, R6
+        LDI R5, 0x02
+        AND R0, R5
+        LDI R5, 0
+        CMP R0, R5
+        JZ  rcr_wait
+        LDI R6, 0x80
+        LDI R7, 0x00
+        LDR R0, R6
+        RET
+
+; ============================================
+; read_dir: reads one key. w/a/s/d update direction (0x6343).
+; ============================================
+read_dir:
+        CALL read_char_raw
+        LDI R5, 'w'
+        CMP R0, R5
+        JZ  rdr_up
+        LDI R5, 's'
+        CMP R0, R5
+        JZ  rdr_down
+        LDI R5, 'a'
+        CMP R0, R5
+        JZ  rdr_left
+        LDI R5, 'd'
+        CMP R0, R5
+        JZ  rdr_right
+        RET
+rdr_up:
+        LDI R0, 0
+        JMP rdr_store
+rdr_down:
+        LDI R0, 2
+        JMP rdr_store
+rdr_left:
+        LDI R0, 3
+        JMP rdr_store
+rdr_right:
+        LDI R0, 1
+rdr_store:
+        LDI R3, 0x63
+        LDI R4, 0x43
+        STR R0, R3
+        RET
+
+; ============================================
+; step_snake: moves the snake one step. Checks wall and body collision
+; (-> game_over). On eating food, snake grows by one segment and score
+; increments; otherwise tail vacates. Updates head_x/head_y, grid[],
+; body[].
+; ============================================
+step_snake:
+        LDI R3, 0x63
+        LDI R4, 0x41
+        LDR R0, R3              ; R0 = head_x
+        LDI R4, 0x42
+        LDR R5, R3              ; R5 = head_y
+        LDI R4, 0x43
+        LDR R6, R3              ; R6 = dir
+
+        LDI R7, 0
+        CMP R6, R7
+        JZ  ss_up
+        LDI R7, 1
+        CMP R6, R7
+        JZ  ss_right
+        LDI R7, 2
+        CMP R6, R7
+        JZ  ss_down
+        ; dir == 3 (left)
+        LDI R7, 1
+        SUB R0, R7
+        JMP ss_have
+ss_up:
+        LDI R7, 1
+        SUB R5, R7
+        JMP ss_have
+ss_down:
+        LDI R7, 1
+        ADD R5, R7
+        JMP ss_have
+ss_right:
+        LDI R7, 1
+        ADD R0, R7
+ss_have:
+        ; bounds check: new_x and new_y must be 0-7
+        LDI R7, 8
+        CMP R0, R7
+        JC  ss_xok
+        JMP game_over
+ss_xok:
+        CMP R5, R7
+        JC  ss_yok
+        JMP game_over
+ss_yok:
+        ; new_idx = new_y*8 + new_x
+        MOV R6, R5
+        SHL R6
+        SHL R6
+        SHL R6                  ; R6 = new_y*8
+        ADD R6, R0              ; R6 = new_idx
+
+        MOV R4, R6
+        LDR R7, R3              ; R7 = grid[new_idx]
+
+        ; body collision?
+        LDI R1, 1
+        CMP R7, R1
+        JZ  game_over
+
+ss_move:
+        ; growing = grid value >> 1  (0 if empty, 1 if food)
+        SHR R7
+        LDI R4, 0x46
+        STR R7, R3              ; save eating flag
+
+        LDI R4, 0x40
+        LDR R2, R3              ; R2 = old_length
+
+        ; read tail grid index: body[old_length-1] is at 0x6360+(old_length-1)
+        MOV R4, R2
+        LDI R1, 0x5F
+        ADD R4, R1              ; R4 = 0x60 + (old_length-1)
+        LDR R1, R3              ; R1 = tail_idx
+
+        ; if not growing, clear the tail cell from the grid
+        LDI R4, 0
+        CMP R7, R4
+        JNZ ss_skip_clear
+        MOV R4, R1
+        LDI R1, 0
+        STR R1, R3              ; grid[tail_idx] = 0
+ss_skip_clear:
+        ; new_length = old_length + growing
+        ADD R2, R7
+        LDI R4, 0x40
+        STR R2, R3              ; length = new_length
+
+        ; shift body[i] = body[i-1] for i = new_length-1 down to 1
+        MOV R1, R2
+        LDI R4, 1
+        SUB R1, R4              ; R1 = i = new_length-1
+shift_loop:
+        LDI R7, 0
+        CMP R1, R7
+        JZ  shift_done
+        MOV R4, R1
+        LDI R7, 0x5F
+        ADD R4, R7              ; R4 = 0x60 + (i-1)  -> address of body[i-1]
+        LDR R2, R3              ; R2 = body[i-1]
+        LDI R7, 1
+        ADD R4, R7              ; R4 = 0x60 + i      -> address of body[i]
+        STR R2, R3              ; body[i] = body[i-1]
+        SUB R1, R7              ; i--
+        JMP shift_loop
+shift_done:
+        LDI R4, 0x60
+        STR R6, R3              ; body[0] = new_idx
+
+        MOV R4, R6
+        LDI R7, 1
+        STR R7, R3              ; grid[new_idx] = 1 (body)
+
+        LDI R4, 0x41
+        STR R0, R3              ; head_x = new_x
+        LDI R4, 0x42
+        STR R5, R3              ; head_y = new_y
+
+        ; if we ate food: score++ and place new food
+        LDI R4, 0x46
+        LDR R7, R3
+        LDI R1, 0
+        CMP R7, R1
+        JZ  ss_done
+
+        LDI R4, 0x45
+        LDR R1, R3
+        LDI R7, 1
+        ADD R1, R7
+        STR R1, R3              ; score++
+
+        CALL place_food
+ss_done:
+        RET
+
+; ============================================
+; place_food: advances RNG (5x+1 mod 256) and writes food (2) at
+; grid[rng & 0x3F]. May land on a body cell; that's fine -- the
+; player just won't see it until the body moves away.
+; ============================================
+place_food:
+        LDI R3, 0x63
+        LDI R4, 0x44
+        LDR R0, R3              ; R0 = rng
+        MOV R6, R0
+        SHL R0
+        SHL R0                  ; R0 = rng*4
+        ADD R0, R6              ; R0 = rng*5
+        LDI R6, 1
+        ADD R0, R6              ; R0 = rng*5+1
+        STR R0, R3              ; rng updated
+        LDI R6, 0x3F
+        AND R0, R6              ; idx = rng & 0x3F  (0-63)
+        MOV R4, R0
+        LDI R6, 2
+        STR R6, R3              ; grid[idx] = 2
+        RET
+
+; ============================================
+; draw_grid: blank line then 8x8 grid as '.' / '#' / '*'
+; ============================================
+draw_grid:
+        LDI R0, 10
+        OUT R0
+        LDI R5, 0
+dg_loop:
+        LDI R3, 0x63
+        MOV R4, R5
+        LDR R0, R3
+        LDI R6, 1
+        CMP R0, R6
+        JZ  dg_body
+        LDI R6, 2
+        CMP R0, R6
+        JZ  dg_food
+        LDI R0, '.'
+        JMP dg_print
+dg_body:
+        LDI R0, '#'
+        JMP dg_print
+dg_food:
+        LDI R0, '*'
+dg_print:
+        OUT R0
+        LDI R6, 1
+        ADD R5, R6
+        MOV R6, R5
+        LDI R7, 7
+        AND R6, R7
+        LDI R7, 0
+        CMP R6, R7
+        JNZ dg_cont
+        LDI R0, 10
+        OUT R0
+dg_cont:
+        LDI R6, 64
+        CMP R5, R6
+        JC  dg_loop
+        RET
+
+; ============================================
+; print_num: print R0 (0-99) as decimal digits, no leading zero.
+; ============================================
+print_num:
+        LDI R5, 10
+        LDI R1, 0
+pn_tens:
+        CMP R0, R5
+        JC  pn_ones
+        SUB R0, R5
+        LDI R6, 1
+        ADD R1, R6
+        JMP pn_tens
+pn_ones:
+        LDI R6, 0
+        CMP R1, R6
+        JZ  pn_digit
+        LDI R6, '0'
+        ADD R1, R6
+        OUT R1
+pn_digit:
+        LDI R6, '0'
+        ADD R0, R6
+        OUT R0
+        RET
+
+; ============================================
+; game_over: print "SCORE <n>\n", unwind the step_snake call frame,
+; return to shell.
+; ============================================
+game_over:
+        LDI R0, 10
+        OUT R0
+        LDI R3, 0x63
+        LDI R4, 0x45
+        LDR R0, R3              ; R0 = score
+        CALL print_num
+        LDI R0, 10
+        OUT R0
+        POP R0                  ; discard step_snake return address
+        POP R0
+        RET

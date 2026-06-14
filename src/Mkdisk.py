@@ -20,7 +20,7 @@ Block 0 (directory):
       [14:16] start block (16-bit big-endian)
 
 Every file (baked-in or user-created) is given a fixed allocation of
-MAX_FILE_BLOCKS blocks (512 bytes) for simplicity -- see cmd_write in
+MAX_FILE_BLOCKS blocks (768 bytes) for simplicity -- see cmd_write in
 kernel.txt.
 """
 
@@ -28,7 +28,7 @@ import sys
 
 BLOCK_SIZE = 256
 NUM_BLOCKS = 128
-MAX_FILE_BLOCKS = 2  # 512 bytes per file, fixed allocation
+MAX_FILE_BLOCKS = 3  # 768 bytes per file, fixed allocation
 
 README_TEXT = (
     "Welcome to the simple filesystem!\n"
@@ -64,11 +64,17 @@ def make_entry(name, perm, size, start_block):
 def main():
     out_path = sys.argv[1] if len(sys.argv) > 1 else "disk.img"
     hello_bin_path = sys.argv[2] if len(sys.argv) > 2 else "hello.bin"
+    snake_bin_path = sys.argv[3] if len(sys.argv) > 3 else "snake.bin"
 
     with open(hello_bin_path, "rb") as f:
         hello_bytes = f.read()
     if len(hello_bytes) > MAX_FILE_BLOCKS * BLOCK_SIZE:
         raise ValueError("hello.bin too large for MAX_FILE_BLOCKS")
+
+    with open(snake_bin_path, "rb") as f:
+        snake_bytes = f.read()
+    if len(snake_bytes) > MAX_FILE_BLOCKS * BLOCK_SIZE:
+        raise ValueError("snake.bin too large for MAX_FILE_BLOCKS")
 
     readme_bytes = README_TEXT.encode("ascii")
     if len(readme_bytes) > MAX_FILE_BLOCKS * BLOCK_SIZE:
@@ -81,8 +87,9 @@ def main():
     block0[0:4] = b"FS01"
 
     files = [
-        ("README.TXT", 0x09, len(readme_bytes), 1),  # R + SYSTEM
-        ("HELLO.BIN",  0x0D, len(hello_bytes),  1 + MAX_FILE_BLOCKS),  # R+X+SYSTEM
+        ("README.TXT", 0x09, len(readme_bytes), 1),                      # R + SYSTEM
+        ("HELLO.BIN",  0x0D, len(hello_bytes),  1 + MAX_FILE_BLOCKS),     # R+X+SYSTEM
+        ("SNAKE.BIN",  0x0D, len(snake_bytes),  1 + MAX_FILE_BLOCKS * 2), # R+X+SYSTEM
     ]
     next_free = 1 + MAX_FILE_BLOCKS * len(files)
 
@@ -105,6 +112,7 @@ def main():
 
     write_file(files[0][3], readme_bytes)
     write_file(files[1][3], hello_bytes)
+    write_file(files[2][3], snake_bytes)
 
     with open(out_path, "wb") as f:
         f.write(disk)
