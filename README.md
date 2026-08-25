@@ -64,7 +64,7 @@ src/
 ├── snake.txt                       Source for SNAKE.BIN
 ├── hello.bin                       Assembled HELLO.BIN binary
 ├── snake.bin                       Assembled SNAKE.BIN binary
-├── mkdisk.py                       Builds disk.img from the binary files
+├── Mkdisk.py                       Builds disk.img from the binary files
 └── disk.img                        32 KiB disk image (generated)
 ```
 
