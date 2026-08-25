@@ -42,7 +42,7 @@ The design goal was a complete, self-consistent stack: no borrowed ISAs, no pre-
 ## Repository Layout
 
 ```
-.
+src/
 ├── Bus.cpp / Bus.hpp               Bus: routes addresses to the right device
 ├── CPU.cpp / CPU.hpp               CPU: fetch-decode-execute, interrupts, stack
 ├── Instructions.cpp / .hpp         Opcode table and execute() dispatcher
