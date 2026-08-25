@@ -2,6 +2,8 @@
 
 A fully custom 8-bit computer emulated in software — complete with its own CPU, ISA, assembler, memory-mapped I/O devices, bootloader, operating system shell, filesystem, and a playable Snake game. Everything from the hardware up was designed and implemented from scratch.
 
+![Booting the kernel, listing the filesystem, and playing Snake](docs/demo.gif)
+
 ---
 
 ## Table of Contents
